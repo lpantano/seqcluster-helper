@@ -3,17 +3,17 @@ import logger
 from cluster_helper import cluster as ipc
 
 
-resources = {"align_r1": [45, 12],
-             "align_r2": [45, 12],
+resources = {"adapter": [4, 2],
+             "align": [45, 8],
              "qc": [8, 1],
-             "cleaning": [4, 1],
-             "polyA": [16, 1],
-             "counts": [32, 4]}
+             "annotate": [16, 1],
+             "report": [8, 1]}
 
 
 def get_cluster_view(args):
     if not os.path.exists("ipython"):
         os.mkdir("ipython")
+        os.mkdir("checkpoint")
     return ipc.cluster_view(args.scheduler, args.queue,
                           args.num_jobs, args.cores_per_job,
                           start_wait=args.timeout,
@@ -29,13 +29,13 @@ def wait_until_complete(jobs):
 
 
 def is_done(step):
-    if os.path.exists(step):
+    if os.path.exists(os.path.join("checkpoint", step)):
         return True
     return False
 
 
 def flag_done(step):
-    with open(step,"w") as handle:
+    with open(os.path.join("checkpoint", step), "w") as handle:
         handle.write("done")
 
 
