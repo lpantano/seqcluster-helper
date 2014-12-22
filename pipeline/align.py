@@ -8,24 +8,14 @@ from tailseq import logger
 accepted_barcode_pattern = re.compile(r"[ACGT]+[ACG]$")
 polyA_tail_pattern = re.compile(r"A{20,}$")
 MAX_EDIT_DISTANCE = 15
-MAX_BEST = 10
+MAX_BEST = 1000
 
 
-def align_read1(data, args):
-    fastq_path = data['r1_path']
-    out_prefix = data['sample_id'] + "_"
-    data["align"], data["clean"] = star_align(data, args, fastq_path, out_prefix)
-    if args.rmdup:
-        out_file = data['sample_id'] + "_rmdup.bam"
-        data["clean"] = rmdup(data["clean"], out_file)
-    return data
 
-
-def align_read2(data, args):
-    fastq_path = data['r1_path'] + " " + data['r2_path']
-    out_prefix = data['sample_id'] + "_both_"
-    opts = "--clip3pNbases 0 25 --clip5pNbases 0 20 "
-    data["align_r2"], data["clean_r2"] = star_align(data, args, fastq_path, out_prefix, opts)
+def align_read(data, args):
+    fastq_path = data['fastq'] + " "
+    out_prefix = data['sample_id']
+    data["align"]  = star_align(data, args, fastq_path, out_prefix)
     return data
 
 
@@ -77,15 +67,6 @@ def clean_align(align_file, out_file):
             out_handle.write(read)
         out_handle.close
 
-    return out_file
-
-
-def rmdup(align_file, out_file):
-    cmd = ("samtools view -Sbh {align_file} | samtools sort -o -n - {tmp} | bammarkduplicates rmdup=1   O={tx_out_file}")
-    tmp = align_file + "_tmp"
-    if not os.path.exists(out_file):
-        with file_transaction(out_file) as tx_out_file:
-            do.run(cmd.format(**locals()))
     return out_file
 
 
