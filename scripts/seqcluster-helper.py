@@ -1,13 +1,13 @@
 from argparse import ArgumentParser
 import os
-from tailseq import align, adapter, annotate
-from tailseq import cluster
+from sqhelper import adapter, align
+from sqhelper import cluster
 
 
 def get_sample(line, sample_map_filename):
-    keys = ["sample_id", "fastq"]
-    sample_id, r1_filename, = line.strip().split(",")
-    return dict(zip(keys, [sample_id, r1_filename]))
+    keys = ["sample_id", "fastq", "group"]
+    sample_id, r1_filename, group = line.strip().split(",")
+    return dict(zip(keys, [sample_id, r1_filename, group]))
 
 
 def get_samples_to_process(sample_file):
@@ -35,7 +35,7 @@ if __name__ == "__main__":
                         default=False, help="Keep multimappers")
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
-    parser.add_argument("--gtf-file", required=True, help="GTF file")
+    parser.add_argument("--gtf-file", required=False, help="GTF file")
     parser.add_argument("--num-jobs", type=int,
                         default=1, help="Number of concurrent jobs to process.")
     parser.add_argument("--cores-per-job", type=int,
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     data = get_samples_to_process(args.sample_map)
 
     data = cluster.send_job(adapter.remove, data, args, "adapter")
-    data = cluster.send_job(align.align_read, data, args, "align")
-    cluster.send_job(align.qc, data, args, "qc")
+    data = cluster.send_job(align.run_seqcluster, [data], args, "align")
+    #cluster.send_job(align.qc, data, args, "qc")
 
-    data = cluster.send_job(annotate.seqcluster, data, args, "annotate")
+    #data = cluster.send_job(annotate.seqcluster, data, args, "annotate")

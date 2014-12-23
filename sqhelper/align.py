@@ -1,22 +1,47 @@
-import re
-from utils import file_transaction, file_exists
 import pysam
 import os
-from tailseq import do
-from tailseq import logger
+from bcbio.utils import file_exists, safe_makedir
+from bcbio.provenance import do
+from bcbio.distributed.transaction import tx_tmpdir, file_transaction
+from sqhelper import logger
+import shutil
 
-accepted_barcode_pattern = re.compile(r"[ACGT]+[ACG]$")
-polyA_tail_pattern = re.compile(r"A{20,}$")
 MAX_EDIT_DISTANCE = 15
 MAX_BEST = 1000
 
 
-
-def align_read(data, args):
-    fastq_path = data['fastq'] + " "
-    out_prefix = data['sample_id']
-    data["align"]  = star_align(data, args, fastq_path, out_prefix)
+def run_seqcluster(data, args):
+    out_dir = "seqcluster"
+    out_dir = os.path.abspath(safe_makedir(out_dir))
+    config_file = os.path.join(out_dir, "prepare.conf")
+    prepare_dir = os.path.join(out_dir, "prepare")
+    prepare_dir = _prepare(data, config_file, prepare_dir)
     return data
+
+
+def _align(data, args):
+    fastq_path = data['collapse']
+    work_dir = os.path.join(data['sample_id'], "align")
+    safe_makedir(work_dir)
+    out_prefix = os.path.join(work_dir, data['sample_id'])
+    data["align"] = star_align(data, args, fastq_path, out_prefix)
+    return data
+
+
+def _prepare(data, config_file, out_dir):
+    with file_transaction(config_file) as tx_out_file:
+        with open(tx_out_file, 'w') as out_handle:
+            for sample in data:
+                fasta = sample['collapse']
+                name = sample['sample_id']
+                out_handle.write("%s\t%s\n" % (fasta, name))
+    cmd = ("seqcluster prepare -c {config_file} -e 2 -o {tx_out_dir}")
+    if not file_exists(out_dir):
+        with tx_tmpdir() as work_dir:
+            tx_out_dir = os.path.join(work_dir, "prepare")
+            do.run(cmd.format(**locals()), "seqcluster prepare")
+            shutil.move(tx_out_dir, out_dir)
+    return out_dir
 
 
 def star_align(data, args, fastq_path, out_prefix, opts=""):
@@ -31,8 +56,7 @@ def star_align(data, args, fastq_path, out_prefix, opts=""):
            "--outSAMattributes NH HI NM MD AS {opts} "
            "").format(**locals())
         do.run(cmd)
-    clean_file = clean_align(out_file, out_prefix + "cleaned.sam")
-    return out_file, clean_file
+    return out_file
 
 
 def qc(data, args):

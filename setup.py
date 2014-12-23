@@ -10,7 +10,7 @@ def read(fname):
 setup(
     name="seqcluster-helper",
     version="0.0.1",
-    packages=["tailseq"],
+    packages=["sqhelper"],
     install_requires=["seqcluster",
                       "ipython-cluster-helper"],
     scripts=['scripts/seqcluster-helper.py']
