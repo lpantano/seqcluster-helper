@@ -63,3 +63,6 @@ def _summary(in_file):
             for l, c in data.iteritems():
                 out_handle.write("%s %s\n" % (l, c))
     return out_file
+
+def _miraligner(fastq_file, out_file)
+    cmd = "miraligner -"

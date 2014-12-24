@@ -16,15 +16,18 @@ def run_seqcluster(data, args):
     config_file = os.path.join(out_dir, "prepare.conf")
     prepare_dir = os.path.join(out_dir, "prepare")
     prepare_dir = _prepare(data, config_file, prepare_dir)
+    fastq_file = os.path.join(prepare_dir, "seqs_fastq")
+    bam_file = _align(data, fastq_file, args)
+    cluster_dir = os.path.join(out_dir, "cluster")
+    cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir)
     return data
 
 
-def _align(data, args):
-    fastq_path = data['collapse']
-    work_dir = os.path.join(data['sample_id'], "align")
-    safe_makedir(work_dir)
+def _align(data, fastq_file, args):
+    work_dir = os.path.join("align")
+    work_dir = os.paht.abspath(safe_makedir(work_dir))
     out_prefix = os.path.join(work_dir, data['sample_id'])
-    data["align"] = star_align(data, args, fastq_path, out_prefix)
+    data["align"] = star_align(data, args, fastq_file, out_prefix)
     return data
 
 
@@ -40,6 +43,16 @@ def _prepare(data, config_file, out_dir):
         with tx_tmpdir() as work_dir:
             tx_out_dir = os.path.join(work_dir, "prepare")
             do.run(cmd.format(**locals()), "seqcluster prepare")
+            shutil.move(tx_out_dir, out_dir)
+    return out_dir
+
+
+def _cluster(bam_file, prepare_dir, out_dir):
+    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} -d ")
+    if not file_exists(out_dir):
+        with tx_tmpdir() as work_dir:
+            tx_out_dir = os.path.join(work_dir, "cluster")
+            do.run(cmd.format(**locals()), "seqcluster cluster")
             shutil.move(tx_out_dir, out_dir)
     return out_dir
 
