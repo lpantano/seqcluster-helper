@@ -64,5 +64,9 @@ def _summary(in_file):
                 out_handle.write("%s %s\n" % (l, c))
     return out_file
 
-def _miraligner(fastq_file, out_file)
-    cmd = "miraligner -"
+def _miraligner(fastq_file, out_file, species, db_folder):
+    cmd = ("miraligner --sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
+    if not file_exists(out_file):
+        with file_transaction(out_file) as tx_out_file:
+            do.run(cmd.format(**locals()), "Do miRNA annotation")
+    return out_file
