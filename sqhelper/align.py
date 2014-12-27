@@ -19,7 +19,7 @@ def run_seqcluster(data, args):
     fastq_file = os.path.join(prepare_dir, "seqs.fastq")
     bam_file = _align(data, fastq_file, args)
     cluster_dir = os.path.join(out_dir, "cluster")
-    cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir)
+    cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir, args.gtf_file)
     return data
 
 
@@ -47,8 +47,10 @@ def _align(data, fastq_file, args):
     return bam_file
 
 
-def _cluster(bam_file, prepare_dir, out_dir):
-    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} -d ")
+def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
+    if annotation_file:
+        opts = "-b %s" % annotation_file
+    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts} -d ")
     ma_file = os.path.join(prepare_dir, "seqs.ma")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:

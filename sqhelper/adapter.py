@@ -29,12 +29,12 @@ def remove(data, args):
     data['size_stats'] = _summary(data['collapse'])
     out_dir = utils.safe_makedir(os.path.join(work_dir, 'miraligner'))
     out_file = os.path.join(out_dir, data["sample_id"])
-    data['miraligner'] = _miraligner(data["clean_fastq"], out_file,args. species, args.db)
+    data['miraligner'] = _miraligner(data["collapse"], out_file,args. species, args.db)
     return data
 
 
 def _cmd_cutadapt():
-    cmd = "cutadapt --adapter={adapter} --minimum-length=8 --untrimmed-output={out_noadapter_file} -o {tx_out_file} -m 17 --overlap=8 {in_file} --too-short-output {out_short}"
+    cmd = "cutadapt --adapter={adapter} --minimum-length=8 --untrimmed-output={out_noadapter_file} -o {tx_out_file} -m 17 --overlap=8 {in_file} --too-short-output {out_short_file}"
     return cmd
 
 
@@ -69,7 +69,7 @@ def _summary(in_file):
 
 
 def _miraligner(fastq_file, out_file, species, db_folder):
-    cmd = ("miraligner -Xms750m -Xmx8g -sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
+    cmd = ("miraligner -Xms750m -Xmx8g -freq -sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
     if not file_exists(out_file + ".mirna"):
         with file_transaction(out_file) as tx_out_file:
             do.run(cmd.format(**locals()), "Do miRNA annotation")
