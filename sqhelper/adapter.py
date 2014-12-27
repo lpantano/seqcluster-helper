@@ -47,27 +47,9 @@ def _collapse(in_file):
     return out_file
 
 
-def _summary(in_file):
-    data = Counter()
-    out_file = in_file + "_size_stats"
-    with open(in_file) as in_handle:
-        for line in in_handle:
-            counts = int(line.strip().split("_x")[1])
-            line = in_handle.next()
-            l = len(line.strip())
-            in_handle.next()
-            in_handle.next()
-            data[l] += counts
-    with file_transaction(out_file) as tx_out_file:
-        with open(tx_out_file, 'w') as out_handle:
-            for l, c in data.iteritems():
-                out_handle.write("%s %s\n" % (l, c))
-    return out_file
-
-
-def _miraligner(fastq_file, out_file):
-    cmd = "miraligner -i {fastq_file} -o {tx_out_file}"
-    if not utils.file_exists(out_file):
+def _miraligner(fastq_file, out_file, species, db_folder):
+    cmd = ("miraligner --sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
+    if not file_exists(out_file):
         with file_transaction(out_file) as tx_out_file:
-            do.run(cmd.format(**locals()), "miraligner")
+            do.run(cmd.format(**locals()), "Do miRNA annotation")
     return out_file

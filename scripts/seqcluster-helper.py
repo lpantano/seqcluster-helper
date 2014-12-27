@@ -13,26 +13,15 @@ def get_sample(line, sample_map_filename):
 def get_samples_to_process(sample_file):
     with open(sample_file) as in_handle:
         return [get_sample(x, sample_file) for x in in_handle]
-
-
-def get_star_prefix(fastq_file):
-    base, _ = os.path.splitext(fastq_file)
-    return base + "_base"
-
-
-def get_cleaned_outfile(align_file):
-    base, ext = os.path.splitext(align_file)
-    return base + "_cleaned" + ext
-
-
-def get_prefix(in_file):
-    return in_file.split("_base")[0]
-
+        
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Run a single cell analysis.")
-    parser.add_argument("--multimappers", action="store_true",
-                        default=False, help="Keep multimappers")
+    parser.add_argument("--minf", action=int,
+                        default=2, help="Minimumm counts")
+    parser.add_argument("--minl", action=int,
+                        default=17, help="Minimumm size")
+    parser.add_argument("--aligner", default="STAR", required=True, help="STAR or bowtie.")
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
     parser.add_argument("--gtf-file", required=False, help="GTF file")
