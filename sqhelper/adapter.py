@@ -64,5 +64,10 @@ def _summary(in_file):
                 out_handle.write("%s %s\n" % (l, c))
     return out_file
 
-def _miraligner(fastq_file, out_file)
-    cmd = "miraligner -"
+
+def _miraligner(fastq_file, out_file):
+    cmd = "miraligner -i {fastq_file} -o {tx_out_file}"
+    if not utils.file_exists(out_file):
+        with file_transaction(out_file) as tx_out_file:
+            do.run(cmd.format(**locals()), "miraligner")
+    return out_file
