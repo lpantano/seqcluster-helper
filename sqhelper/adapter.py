@@ -1,6 +1,6 @@
 import os
 from collections import Counter
-from bcbio.utils import splitext_plus
+from bcbio.utils import splitext_plus, file_exists
 from bcbio.provenance import do
 from bcbio.distributed.transaction import file_transaction, tx_tmpdir
 from bcbio import utils
@@ -27,6 +27,9 @@ def remove(data, args):
     data["clean_fastq"] = out_file
     data['collapse'] = _collapse(out_file)
     data['size_stats'] = _summary(data['collapse'])
+    out_dir = utils.safe_makedir(os.path.join(work_dir, 'miraligner'))
+    out_file = os.path.join(out_dir, data["sample_id"])
+    data['miraligner'] = _miraligner(data["clean_fastq"], out_file,args. species, args.db)
     return data
 
 
@@ -47,9 +50,28 @@ def _collapse(in_file):
     return out_file
 
 
+def _summary(in_file):
+    data = Counter()
+    out_file = in_file + "_size_stats"
+    with open(in_file) as in_handle:
+        for line in in_handle:
+            counts = int(line.strip().split("_x")[1])
+            line = in_handle.next()
+            l = len(line.strip())
+            in_handle.next()
+            in_handle.next()
+            data[l] += counts
+    with file_transaction(out_file) as tx_out_file:
+        with open(tx_out_file, 'w') as out_handle:
+            for l, c in data.iteritems():
+                out_handle.write("%s %s\n" % (l, c))
+    return out_file
+
+
 def _miraligner(fastq_file, out_file, species, db_folder):
-    cmd = ("miraligner --sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
-    if not file_exists(out_file):
+    cmd = ("miraligner -Xms750m -Xmx8g -sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
+    if not file_exists(out_file + ".mirna"):
         with file_transaction(out_file) as tx_out_file:
             do.run(cmd.format(**locals()), "Do miRNA annotation")
+            shutil.move(tx_out_file + ".mirna", out_file + ".mirna")
     return out_file

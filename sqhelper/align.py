@@ -16,18 +16,10 @@ def run_seqcluster(data, args):
     config_file = os.path.join(out_dir, "prepare.conf")
     prepare_dir = os.path.join(out_dir, "prepare")
     prepare_dir = _prepare(data, config_file, prepare_dir)
-    fastq_file = os.path.join(prepare_dir, "seqs_fastq")
+    fastq_file = os.path.join(prepare_dir, "seqs.fastq")
     bam_file = _align(data, fastq_file, args)
     cluster_dir = os.path.join(out_dir, "cluster")
     cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir)
-    return data
-
-
-def _align(data, fastq_file, args):
-    work_dir = os.path.join("align")
-    work_dir = os.paht.abspath(safe_makedir(work_dir))
-    out_prefix = os.path.join(work_dir, data['sample_id'])
-    data["align"] = star_align(data, args, fastq_file, out_prefix)
     return data
 
 
@@ -47,8 +39,17 @@ def _prepare(data, config_file, out_dir):
     return out_dir
 
 
+def _align(data, fastq_file, args):
+    work_dir = os.path.join("align")
+    work_dir = os.path.abspath(safe_makedir(work_dir))
+    out_prefix = os.path.join(work_dir, "seqs")
+    bam_file = star_align(data, args, fastq_file, out_prefix)
+    return bam_file
+
+
 def _cluster(bam_file, prepare_dir, out_dir):
     cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} -d ")
+    ma_file = os.path.join(prepare_dir, "seqs.ma")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
             tx_out_dir = os.path.join(work_dir, "cluster")
@@ -61,14 +62,14 @@ def star_align(data, args, fastq_path, out_prefix, opts=""):
     cores = args.cores_per_job
     reference_prefix = args.aligner_index
     max_best = MAX_BEST
-    out_file = out_prefix + "Aligned.out.sam"
+    out_file = out_prefix + "Aligned.sortedByCoord.out.bam"
     if not os.path.exists(out_file):
-        cmd = ("STAR --genomeDir {reference_prefix} --readFilesIn {fastq_path} --readFilesCommand zcat "
+        cmd = ("STAR --genomeDir {reference_prefix} --readFilesIn {fastq_path} --outSAMtype BAM SortedByCoordinate "
            "--runThreadN {cores} --outFileNamePrefix {out_prefix} "
            "--outFilterMultimapNmax {max_best} "
-           "--outSAMattributes NH HI NM MD AS {opts} "
+           "--outSAMattributes NH HI NM {opts} "
            "").format(**locals())
-        do.run(cmd)
+        do.run(cmd, "Alignment")
     return out_file
 
 

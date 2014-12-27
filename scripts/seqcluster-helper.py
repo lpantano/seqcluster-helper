@@ -17,11 +17,15 @@ def get_samples_to_process(sample_file):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Run a single cell analysis.")
-    parser.add_argument("--minf", action=int,
+    parser.add_argument("--minf", type=int,
                         default=2, help="Minimumm counts")
-    parser.add_argument("--minl", action=int,
+    parser.add_argument("--minl", type=int,
                         default=17, help="Minimumm size")
-    parser.add_argument("--aligner", default="STAR", required=True, help="STAR or bowtie.")
+    parser.add_argument("--db",
+                        help="miRBase databases")
+    parser.add_argument("--species",
+                        default="hsa", help="species")
+    parser.add_argument("--aligner", default="STAR", help="STAR or bowtie.")
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
     parser.add_argument("--gtf-file", required=False, help="GTF file")

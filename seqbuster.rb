@@ -3,7 +3,7 @@ class Seqbuster < Formula
 homepage 'https://github.com/lpantano/seqbuster'
 version '1.0'
 url 'https://github.com/lpantano/seqbuster/archive/3.1.tar.gz'
-
+sha1 '39342214043e855527e10f25a40d699160953ad1'
 def install
   java = share / 'java' / 'seqbuster'
   java.install Dir['*']
