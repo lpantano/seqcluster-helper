@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 import os
-from sqhelper import adapter, align
+from sqhelper import sample, group
 from sqhelper import cluster
 
 
@@ -53,8 +53,8 @@ if __name__ == "__main__":
 
     data = get_samples_to_process(args.sample_map)
 
-    data = cluster.send_job(adapter.remove, data, args, "adapter")
-    data = cluster.send_job(align.run_seqcluster, [data], args, "align")
+    data = cluster.send_job(sample.remove, data, args, "sample")
+    data = cluster.send_job(group.run_seqcluster, [data], args, "group")
 
     write_summary(data)
     #cluster.send_job(align.qc, data, args, "qc")

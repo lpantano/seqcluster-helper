@@ -3,8 +3,8 @@ import logger
 from cluster_helper import cluster as ipc
 
 
-resources = {"adapter": [4, 2],
-             "align": [45, 8],
+resources = {"sample": [4, 2],
+             "group": [45, 8],
              "qc": [8, 1],
              "annotate": [16, 1],
              "report": [8, 1]}
