@@ -18,6 +18,7 @@ def run_seqcluster(data, args):
     prepare_dir = _prepare(data, config_file, prepare_dir)
     fastq_file = os.path.join(prepare_dir, "seqs.fastq")
     bam_file = _align(data, fastq_file, args)
+    #quality = _coverage(bam_file, prepare_dir)
     cluster_dir = os.path.join(out_dir, "cluster")
     cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir, args.gtf_file)
     return data
@@ -30,7 +31,7 @@ def _prepare(data, config_file, out_dir):
                 fasta = sample['collapse']
                 name = sample['sample_id']
                 out_handle.write("%s\t%s\n" % (fasta, name))
-    cmd = ("seqcluster prepare -c {config_file} -e 2 -o {tx_out_dir}")
+    cmd = ("seqcluster prepare -c {config_file} -u 40 -l 16 -e 5 -o {tx_out_dir}")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
             tx_out_dir = os.path.join(work_dir, "prepare")
@@ -73,6 +74,17 @@ def star_align(data, args, fastq_path, out_prefix, opts=""):
            "").format(**locals())
         do.run(cmd, "Alignment")
     return out_file
+
+
+def _coverage(bam_file, prepare_dir):
+    ma_file = os.path.join(prepare_dir, "seqs.ma")
+    list_seq = parse_ma_file(bam_file)
+    with pysam.Samfile(ma_file, "rb") as bam:
+        for a in bam.fetch():
+            if not a.is_unmapped:
+                if a.qname in list_seq:
+                    for sample in list_seq:
+                        sam_files[sample] += a
 
 
 def qc(data, args):

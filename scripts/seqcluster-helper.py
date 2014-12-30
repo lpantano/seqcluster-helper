@@ -13,7 +13,12 @@ def get_sample(line, sample_map_filename):
 def get_samples_to_process(sample_file):
     with open(sample_file) as in_handle:
         return [get_sample(x, sample_file) for x in in_handle]
-        
+
+
+def write_summary(data):
+    with open("summary.csv", 'w') as in_handle:
+        for sample in data[0]:
+            in_handle.write("%s\n" % ",".join(sample.values()))
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Run a single cell analysis.")
@@ -50,6 +55,8 @@ if __name__ == "__main__":
 
     data = cluster.send_job(adapter.remove, data, args, "adapter")
     data = cluster.send_job(align.run_seqcluster, [data], args, "align")
+
+    write_summary(data)
     #cluster.send_job(align.qc, data, args, "qc")
 
     #data = cluster.send_job(annotate.seqcluster, data, args, "annotate")
