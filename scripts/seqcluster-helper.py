@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 import os
-from sqhelper import sample, group
+from sqhelper import sample, group, qc
 from sqhelper import cluster
 
 
@@ -54,6 +54,8 @@ if __name__ == "__main__":
     data = get_samples_to_process(args.sample_map)
 
     data = cluster.send_job(sample.remove, data, args, "sample")
+    data = cluster.send_job(qc.quality, data, args, "qc")
+
     data = cluster.send_job(group.run_seqcluster, [data], args, "group")
 
     write_summary(data)
