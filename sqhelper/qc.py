@@ -1,4 +1,3 @@
-import pysam
 import os
 from bcbio.utils import file_exists, safe_makedir
 from bcbio.provenance import do
@@ -10,16 +9,18 @@ import shutil
 
 
 def quality(data, args):
-    _fastqc(data["clean_fastq"])
-    return True
+    work_dir = os.path.join(data["sample_id"], "qc")
+    data["qc"] = _fastqc(data["clean_fastq"], work_dir)
+    return data
 
 
-def _fastqc(input_file):
-    cmd = ("fastqc {input_file}")
-    out_file = os.path.abspath(input_file + "_fastqc")
-    if not file_exists(out_file):
+def _fastqc(input_file, out_dir):
+    cmd = ("fastqc {input_file} --extract -o {out_dir}")
+    out_dir = os.path.abspath(out_dir)
+    safe_makedir(out_dir)
+    if not file_exists(out_dir):
         do.run(cmd.format(**locals()), "Doing Fastqc")
-    return out_file
+    return out_dir
 
 
 def _sample_align(data, args):
