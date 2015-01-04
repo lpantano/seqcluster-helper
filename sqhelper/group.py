@@ -6,7 +6,7 @@ from bcbio.distributed.transaction import tx_tmpdir, file_transaction
 from sqhelper import logger
 import shutil
 
-MAX_EDIT_DISTANCE = 15
+MAX_EDIT_DISTANCE = 2
 MAX_BEST = 1000
 
 
@@ -43,8 +43,8 @@ def _prepare(data, config_file, out_dir):
 def _align(data, fastq_file, args):
     work_dir = os.path.join("align")
     work_dir = os.path.abspath(safe_makedir(work_dir))
-    out_prefix = os.path.join(work_dir, "seqs")
-    bam_file = star_align(data, args, fastq_file, out_prefix)
+    out_prefix = os.path.join(work_dir, "seqs_")
+    bam_file = star_align(data, args, fastq_file, out_prefix, 1000)
     return bam_file
 
 
@@ -61,19 +61,20 @@ def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
     return out_dir
 
 
-def star_align(data, args, fastq_path, out_prefix, opts=""):
+def star_align(data, args, fastq_path, out_prefix, max_hits=10, opts=""):
     cores = args.cores_per_job
     reference_prefix = args.aligner_index
-    max_best = MAX_BEST
     out_file = out_prefix + "Aligned.sortedByCoord.out.bam"
+    clean_file = out_prefix + "clean.bam"
     if not os.path.exists(out_file):
         cmd = ("STAR --genomeDir {reference_prefix} --readFilesIn {fastq_path} --outSAMtype BAM SortedByCoordinate "
            "--runThreadN {cores} --outFileNamePrefix {out_prefix} "
-           "--outFilterMultimapNmax {max_best} "
+           "--outFilterMultimapNmax {max_hits} "
            "--outSAMattributes NH HI NM {opts} "
-           "").format(**locals())
+           "--alignIntronMax 1 ").format(**locals())
         do.run(cmd, "Alignment")
-    return out_file
+    clean_align(out_file, clean_file)
+    return clean_file
 
 
 def _coverage(bam_file, prepare_dir):
@@ -108,8 +109,8 @@ def clean_align(align_file, out_file):
     count_total_reads = 0
     count_assigned_reads = 0
     count_assigned_aligned_reads = 0
-    with pysam.Samfile(align_file, "r") as in_handle, file_transaction(out_file) as tx_out_file:
-        out_handle = pysam.Samfile(tx_out_file, "wh", template=in_handle)
+    with pysam.Samfile(align_file, "rb") as in_handle, file_transaction(out_file) as tx_out_file:
+        out_handle = pysam.Samfile(tx_out_file, "wb", template=in_handle)
         for read in in_handle:
             count_total_reads += 1
             count_assigned_reads += 1
@@ -125,12 +126,15 @@ def clean_align(align_file, out_file):
 def poorly_mapped_read(read):
     if read.is_unmapped:
         return True
-#    nm = get_tag(read, "NM")
-#    if nm and (nm > MAX_EDIT_DISTANCE):
-#        return True
-    x0 = get_tag(read, "X0")
-    if x0 and (x0 > MAX_BEST):
+    nm = get_tag(read, "NM")
+    if nm and (nm > MAX_EDIT_DISTANCE):
         return True
+    splice = [True for cigar in read.cigar if cigar[0] == 3]
+    if any(splice):
+        return True
+#    x0 = get_tag(read, "X0")
+#    if x0 and (x0 > MAX_BEST):
+#        return True
     return False
 
 
