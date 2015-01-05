@@ -21,6 +21,7 @@ def run_seqcluster(data, args):
     #quality = _coverage(bam_file, prepare_dir)
     cluster_dir = os.path.join(out_dir, "cluster")
     cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir, args.gtf_file)
+    data = _update(data, prepare_dir, bam_file, cluster_dir)
     return data
 
 
@@ -86,6 +87,14 @@ def _coverage(bam_file, prepare_dir):
                 if a.qname in list_seq:
                     for sample in list_seq:
                         sam_files[sample] += a
+
+
+def _update(data,  prepare_dir, bam_file, cluster_dir):
+    for s in data:
+        s["seqs_ma"] = os.path.join(prepare_dir, "seqs.ma")
+        s["seqs_bam"] = bam_file
+        s["clusters"] = os.path.join(cluster_dir, "counts.tsv")
+    return data
 
 
 def qc(data, args):

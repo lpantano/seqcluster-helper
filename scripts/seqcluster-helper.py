@@ -16,9 +16,12 @@ def get_samples_to_process(sample_file):
 
 
 def write_summary(data):
+    header = data[0][0].keys()
     with open("summary.csv", 'w') as in_handle:
-        for sample in data[0]:
-            in_handle.write("%s\n" % ",".join(sample.values()))
+        in_handle.write("%s\n" % ",".join(header))
+        for s in data[0]:
+            in_handle.write("%s\n" % ",".join(s.values()))
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Run a single cell analysis.")
