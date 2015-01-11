@@ -9,7 +9,7 @@ def read(fname):
 
 setup(
     name="seqcluster-helper",
-    version="0.0.1",
+    version="0.0.99",
     packages=["sqhelper"],
     install_requires=["seqcluster",
                       "ipython-cluster-helper"],

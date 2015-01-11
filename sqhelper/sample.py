@@ -29,7 +29,7 @@ def remove(data, args):
     data['size_stats'] = _summary(data['collapse'])
     out_dir = utils.safe_makedir(os.path.join(work_dir, 'miraligner'))
     out_file = os.path.join(out_dir, data["sample_id"])
-    data['miraligner'] = _miraligner(data["collapse"], out_file,args. species, args.db)
+    data['miraligner'] = _miraligner(data["collapse"], out_file, args. species, args.db)
     return data
 
 
