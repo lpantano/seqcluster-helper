@@ -1,10 +1,35 @@
-from bcbio.install import get_cloudbiolinux, _default_deploy_args
+from argparse import ArgumentParser
+# from bcbio.install import get_cloudbiolinux, _default_deploy_args
+from bcbio.pipeline import config_utils
 
 
-#install bcbio 
+# checl installed tools
+def check_requirements():
+    for tool in ['STAR', 'seqcluster', 'samtools',
+                 'bedtools']:
+        try:
+            config_utils.get_program(tool, {})
+            print "Tool installed: %s" % tool
+        except Exception, e:
+            print "Error: Tool not found: %s" % tool
+            raise(e)
+    print "Everything is fine."
 
 
-#install tools
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Check installation")
+    parser.add_argument("--check", action="store_true",
+                        default=False, help="check")
+
+    args = parser.parse_args()
+    if args.check:
+        check_requirements()
+
+
+# install bcbio
+
+
+# install tools
 def upgrade_thirdparty_tools(args, remotes):
     """Install and update third party tools used in the pipeline.
 
