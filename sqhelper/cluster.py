@@ -3,7 +3,7 @@ import logger
 from cluster_helper import cluster as ipc
 
 
-resources = {"sample": [4, 2],
+config_default = {"sample": [4, 2],
              "group": [45, 8],
              "qc": [8, 1],
              "report": [8, 1]}
@@ -41,6 +41,8 @@ def flag_done(step):
 def send_job(fn, data, args, step):
     """decide if send jobs with ipython or run locally"""
     res = []
+    if not args.config:
+        resources = config_default
     logger.my_logger.debug("doing %s" % step)
     if step not in resources:
         raise ValueError("step not in resources %s" % step)
