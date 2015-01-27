@@ -9,9 +9,9 @@ def read(fname):
 
 setup(
     name="seqcluster-helper",
-    version="0.0.99",
+    version="0.99.05",
     packages=["sqhelper"],
     install_requires=["seqcluster",
                       "ipython-cluster-helper"],
-    scripts=['scripts/seqcluster-helper.py']
+    scripts=['scripts/seqcluster-helper.py', 'scripts/seqcluster-installer.py']
 )
