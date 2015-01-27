@@ -35,6 +35,7 @@ if __name__ == "__main__":
                         default="hsa", help="species")
     parser.add_argument("--aligner", default="STAR", help="STAR or bowtie.")
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
+    parser.add_argument("--adapter", required=True, help="Adapter.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
     parser.add_argument("--gtf-file", required=False, help="GTF file")
     parser.add_argument("--num-jobs", type=int,

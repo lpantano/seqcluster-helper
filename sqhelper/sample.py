@@ -10,7 +10,7 @@ ADAPTER = "AGATCGGAAGAGCAC"
 
 
 def remove(data, args):
-    adapter = ADAPTER
+    adapter = args.adapter
     work_dir = data["sample_id"]
     work_dir = os.path.abspath(utils.safe_makedir(work_dir))
     in_file = data["fastq"]
