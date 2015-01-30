@@ -1,11 +1,12 @@
 from argparse import ArgumentParser
-import os
 from sqhelper import sample, group, qc
 from sqhelper import cluster
 
 
 def get_sample(line, sample_map_filename):
     keys = ["sample_id", "fastq", "group"]
+    if len(line.split(',')) != 3:
+        raise ValueError("This line hasn't 3 elements: %s" % line)
     sample_id, r1_filename, group = line.strip().split(",")
     return dict(zip(keys, [sample_id, r1_filename, group]))
 

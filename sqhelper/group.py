@@ -26,13 +26,14 @@ def run_seqcluster(data, args):
 
 
 def _prepare(data, config_file, out_dir):
+    minl, minf = args.minl, args.minf
     with file_transaction(config_file) as tx_out_file:
         with open(tx_out_file, 'w') as out_handle:
             for sample in data:
                 fasta = sample['collapse']
                 name = sample['sample_id']
                 out_handle.write("%s\t%s\n" % (fasta, name))
-    cmd = ("seqcluster prepare -c {config_file} -u 40 -l 16 -e 5 -o {tx_out_dir}")
+    cmd = ("seqcluster prepare -c {config_file} -u 40 -l {minl} -e {minf} -o {tx_out_dir}")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
             tx_out_dir = os.path.join(work_dir, "prepare")
