@@ -12,10 +12,11 @@ MAX_BEST = 1000
 
 def run_seqcluster(data, args):
     out_dir = "seqcluster"
+    minl, minf = args.minl, args.minf
     out_dir = os.path.abspath(safe_makedir(out_dir))
     config_file = os.path.join(out_dir, "prepare.conf")
     prepare_dir = os.path.join(out_dir, "prepare")
-    prepare_dir = _prepare(data, config_file, prepare_dir)
+    prepare_dir = _prepare(data, config_file, prepare_dir, minl, minf)
     fastq_file = os.path.join(prepare_dir, "seqs.fastq")
     bam_file = _align(data, fastq_file, args)
     #quality = _coverage(bam_file, prepare_dir)
@@ -25,8 +26,7 @@ def run_seqcluster(data, args):
     return data
 
 
-def _prepare(data, config_file, out_dir):
-    minl, minf = args.minl, args.minf
+def _prepare(data, config_file, out_dir, minl, minf):
     with file_transaction(config_file) as tx_out_file:
         with open(tx_out_file, 'w') as out_handle:
             for sample in data:
