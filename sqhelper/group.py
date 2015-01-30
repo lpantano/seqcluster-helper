@@ -51,6 +51,7 @@ def _align(data, fastq_file, args):
 
 
 def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
+    opts = ""
     if annotation_file:
         opts = "-b %s" % annotation_file
     cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts} -d ")
