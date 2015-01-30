@@ -5,7 +5,7 @@ from cluster_helper import cluster as ipc
 
 config_default = {"sample": [4, 2],
              "group": [45, 8],
-             "qc": [8, 1],
+             "qc": [35, 1],
              "report": [8, 1]}
 
 
