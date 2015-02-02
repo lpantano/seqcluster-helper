@@ -4,7 +4,7 @@ This python package helps to run seqbuster and seqcluster tools.
 
 Install first:
 
-* seqcluster :see (https://github.com/lpantano/seqcluster/README.md)
+* seqcluster :see [readme](https://github.com/lpantano/seqcluster/blob/master/README.rst)
 * seqbuster : install after seqcluster doing `brew install https://github.com/lpantano/seqcluster-helper/blob/master/seqbuster.rb`
 * STAR : guide in seqcluster installation
 * fastqc : guide in seqcluster installation
