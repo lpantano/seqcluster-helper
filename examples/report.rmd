@@ -1,0 +1,379 @@
+---
+output:
+  knitrBootstrap::bootstrap_document:
+    theme: readable
+    highlight: zenburn
+    theme.chooser: TRUE
+    highlight.chooser: TRUE
+  html_document:
+    toc: true
+    highlight: zenburn
+---
+
+
+```{r setup}
+library(knitr)
+
+library(ggplot2)
+library(reshape)
+library(DESeq2)
+library(genefilter)
+library(CHBUtils)
+library(gtools)
+library(gridExtra)
+library(devtools)
+library(dplyr)
+library("isomiRs")
+knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=10,fig.heigh=7,
+               cache=FALSE, highlight=TRUE, autodep=TRUE, warning=FALSE, error=FALSE,
+               message=FALSE, prompt=TRUE, comment='', fig.cap='', bootstrap.show.code=FALSE)
+root_file = {path_abs}
+root_path = {path_abs}
+```
+
+```{r render,eval=FALSE}
+library(rmarkdown)
+library(knitrBootstrap)
+render("~/repos/pipelines/slack_cel_network/reports/new_smallrna/mirna.rmd")
+```
+
+
+# Exploratory analysis
+
+In this section we will see descriptive figures about quality of the data, 
+reads with adapter, reads mapped to miRNAs, reads mapped to other small RNAs. 
+
+## size distribution
+
+After adapter removal, we can plot the size distribution of the small RNAs.
+
+```{r adapter,fig.width=10}
+setwd(root_path)
+files = read.table({path_summary}, sep=",",header=T)
+names_stats = files[,"size_stats"]
+samples = files[,"sample_id"]
+groups = files[,"group"]
+names(names_stats) = samples
+names(groups) = samples
+tab = data.frame()
+for (sample in samples){
+    d = read.table(names_stats[sample], sep=" ")
+    tab = rbind(tab, d %>% mutate(sample=sample, group=groups[sample]))
+}
+
+
+reads_adapter = tab %>% group_by(sample, group) %>% summarise(total=sum(V2))
+ggplot(reads_adapter, aes(x=sample,y=total,fill=group)) +
+    geom_bar(stat="identity", position = "dodge") +
+    ggtitle("total number of reads with adapter") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
+    geom_bar(stat="identity", position = "dodge") +
+    facet_wrap(~group, nrow=2)+
+    ggtitle("size distribution") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+
+## miRNA
+
+
+### total miRNA expression annotated with mirbase
+
+```{r mirna,results='hide'}
+mi_files = paste0(  files[,"miraligner"] , ".mirna" )
+design <- as.data.frame(t(as.data.frame( sapply(as.character(files[,"group"]), strsplit, split="_",fixed=2) )))
+names(design ) <- c("sample","time")
+row.names(design) = samples
+obj <- loadIso(files = mi_files, design = design ,header = T, cov = 1)
+mirna_no_errors = isomiRs::makeCounts(obj,mism = TRUE)
+keep = grepl( "0$",row.names(mirna_no_errors@counts) )
+mi_counts = mirna_no_errors@counts[keep,]
+```
+
+
+```{r mirna-mirbase}
+ggplot( data.frame(sample=colnames(obj@counts), total=colSums(obj@counts))) +
+    geom_bar(aes(x=sample,y=total), stat='identity')+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+mirna_step <- as.data.frame(colSums(obj@counts))
+```
+
+### Distribution of mirna expression
+
+```{r depth}
+ggplot(melt(obj@counts)) +
+    geom_boxplot(aes(x=X2,y=value))+
+    scale_y_log10()+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### cumulative distribution of miRNAs
+
+We can see this time we detect much more miRNAs. The saturation is near to 200.
+
+```{r cum}
+tab <- data.frame()
+cs <- as.data.frame(apply(obj@counts,2,cumsum))
+cs$pos <- 1:nrow(cs)
+ggplot((melt(cs,id.vars = "pos")))+
+    geom_point(aes(x=pos,y=value,color=variable))+
+    scale_y_log10()
+```
+
+## Others
+
+### classification
+
+```{r cluster}
+clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1)
+ann <- clus[,1]
+clus_ma <- clus[,2:ncol(clus)]
+
+```
+
+The major contribution are repeats and rRNA, with variation in the percentage. 
+
+```{r cluster_type}
+rRNA <- colSums(clus_ma[grepl("rRNA",ann) & grepl("miRNA",ann)==F,])
+miRNA <- colSums(clus_ma[grepl("miRNA",ann),])
+tRNA <- colSums(clus_ma[grepl("tRNA",ann) & grepl("rRNA",ann)==F & grepl("repeat",ann)==F & grepl("miRNA",ann)==F,])
+rmsk <- colSums(clus_ma[grepl("repeat",ann) & grepl("rRNA",ann)==F & grepl("miRNA",ann)==F,])
+total <- colSums(clus_ma)
+
+dd <- data.frame(samples=names(rRNA),
+                 rRNA=rRNA,
+                 miRNA=miRNA,
+                 tRNA=tRNA,
+                 rmsk=rmsk,
+                total=total)
+ggplot(melt(dd)) +
+    geom_bar(aes(x=samples,y=value,fill=variable),
+             stat='identity',
+             position="dodge")+
+    scale_fill_brewer(palette = "Set1")+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+dd_norm = dd
+dd_norm[,2:5] = sweep(dd[,2:5],1,dd[,6],"/")
+ggplot(melt(dd_norm[,1:5])) +
+    geom_bar(aes(x=samples,y=value,fill=variable),
+             stat='identity',
+             position="dodge")+
+    scale_fill_brewer(palette = "Set1")+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    labs(list(title="relative proportion of small RNAs",y="% reads"))
+```
+
+
+## correlation between type of small RNA
+
+A way to show the complexity of the samples is to show the % of the different
+type of small RNA respect to the total amount of reads with adapter.
+
+This way you can see easily if some type of small RNA is increasing or decreasing
+a lot in some sample, and take that into account in the normalization.
+
+In the following figures the Y axis shows the % of reads with adapter. And the
+X axis shows the % of reads of different type of small RNA.
+
+```{r cor-abundance}
+reads_adapter = as.data.frame(reads_adapter)
+row.names(reads_adapter) = reads_adapter[,1]
+samples = as.character(samples)
+dat = cbind(mirbase=mirna_step[samples,] , adapter=reads_adapter[samples, 3] , dd[samples, 1:6])
+ggplot(dat) +
+    geom_point(aes(x=mirbase,y=adapter,colour="mirbase"))+
+    geom_point(aes(x=total,y=adapter,colour="aligned"))+
+    geom_point(aes(x=rRNA,y=adapter,colour="rRNA"))+
+    geom_point(aes(x=rmsk,y=adapter,colour="rmsk"))+
+    facet_wrap(~samples)+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    labs(list(y="reads w adapter",x="# reads",title="annotated reads plot"))
+    
+```
+
+
+# correlation
+
+Just to check sample correlation after normalization:
+
+```{r cor-fn}
+get_cor <- function(norm, design,size=NULL){
+    dse <- DESeqDataSetFromMatrix(countData = norm,
+                       colData = design,
+                       design = ~ sample +time+ sample*time)
+    dse <- estimateSizeFactors(dse)
+    if (! is.null(size)){
+        sizeFactors(dse) = size
+    }
+    dse <- estimateDispersions(dse)
+    rdse <- rlog(dse, blind = TRUE)
+    par(mfrow=c(2,1))
+    ggheatmap.show(ggheatmap(cor(assay(rdse))))
+    mds(assay(rdse),condition = design$sample,d="cor",xi = 1, yi = 2)
+}
+```
+
+
+```{r cor-minra-trna}
+get_cor(raw[rowMeans(raw)>5,],design,size=sizeFactors(clus_clean_dse))
+```
+
+
+# DE
+
+I did differential expression of all possible comparison using the previous normalization.
+For each DE I tried, I plot Dispersion plot that shows the relationship between
+standard deviation expression and average expression for each miRNA.
+
+```{r handle}
+
+filter_handle <- function(res){
+    res_nona <- res[!is.na(res$padj),]
+    keep <- res_nona$padj < 0.1 
+    res_nona[keep,]
+}
+```
+
+```{r de-setup}
+library(DESeq2)
+library(DEGreport)
+library(vsn)
+design =  {formula}
+condition = {condition}
+```
+
+```{r deseq2-handler}
+handle_deseq2 = function(dds, summarydata, column) {
+  all_combs = combn(levels(summarydata[,column]), 2, simplify=FALSE)
+  all_results = list()
+  contrast_strings = list()
+  for(comb in all_combs) {
+    contrast_string = paste(comb, collapse="_vs_")
+    contrast = c(column, comb)
+    res = results(dds, contrast=contrast)
+    res = res[order(res$padj),]
+    all_results = c(all_results, res)
+    contrast_strings = c(contrast_strings, contrast_string)
+  }
+  names(all_results) = contrast_strings
+  return(all_results)
+}
+
+plot_MA = function(res){
+    for(i in seq(length(res))) {
+        plotMA(res[[i]])
+        gtitle(paste("MA plot for contrast", names(res)[i]))
+    }
+}
+
+plot_volcano = function(res){
+    for(i in seq(length(res))) {
+        stats = res[[i]][,c(2,6)]
+        p = volcano_density_plot(stats, title=names(res)[i], lfc.cutoff=1)
+        print(p)
+    }
+}
+
+do_de = function(raw, summarydata, condition){
+    dss = DESeqDataSetFromMatrix(countData = raw[rowMeans(raw)>3,],
+                       colData = summarydata,
+                       design = ~ condition)
+    plotDispEsts(dss)
+    dss
+}
+
+do_norm = function(dss, root_path){
+    rlog_ma = assay(rlog(dss))
+    count_ma = counts(dss, normalized=TRUE)
+    fn_log = paste0(root_file,"log_matrix.txt")
+    write.table(rlog_ma,fn_log,sep="\t")
+    fn_count = paste0(root_file,"count_matrix.txt")
+    write.table(count_ma,fn_count,sep="\t")
+ 
+}
+
+```
+
+
+# mirna
+
+```{r de}
+dss = do_de(obj@counts, summarydata, condition)
+```
+
+```{r tables}
+do_norm(dss, root_path)
+```
+
+
+## MA-plots
+  
+```{r DESeq-output, results='asis'}
+all_results = handle_deseq2(dds, summarydata, condition)
+plot_MA(all_results)
+```
+
+## Volcano-plots
+
+```{r DESeq-volcano}
+plot_volcano(all_results)
+```
+
+# isomir
+
+REMEMBER TO SORT NAMES OF SUMMARY DATA AND COUNTS
+
+```{r de-iso}
+dss = do_de(makeCounts(obj), summarydata, condition, ref=T, iso5=T, iso3=T, add=T, sub=T)
+```
+
+```{r tables-iso}
+do_norm(dss, root_path)
+```
+
+
+## MA-plots
+  
+```{r DESeq-output-iso, results='asis'}
+all_results = handle_deseq2(dds, summarydata, condition)
+plot_MA(all_results)
+```
+
+## Volcano-plots
+
+```{r DESeq-volcano-iso}
+plot_volcano(all_results)
+```
+
+
+# clusters
+
+
+```{r de-c}
+dss = do_de(clus_ma, summarydata, condition, ref=T, iso5=T, iso3=T, add=T, sub=T)
+```
+
+```{r tables-c}
+do_norm(dss, root_path)
+```
+
+
+## MA-plots
+  
+```{r DESeq-output-c, results='asis'}
+all_results = handle_deseq2(dds, summarydata, condition)
+plot_MA(all_results)
+```
+
+## Volcano-plots
+
+```{r DESeq-volcano-c}
+plot_volcano(all_results)
+```
+
+
+
