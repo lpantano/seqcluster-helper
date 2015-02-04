@@ -27,16 +27,27 @@ library("isomiRs")
 knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=10,fig.heigh=7,
                cache=FALSE, highlight=TRUE, autodep=TRUE, warning=FALSE, error=FALSE,
                message=FALSE, prompt=TRUE, comment='', fig.cap='', bootstrap.show.code=FALSE)
-root_file = {path_abs}
-root_path = {path_abs}
+root_file = $path_abs
+root_path = $path_abs
 ```
 
 ```{r render,eval=FALSE}
 library(rmarkdown)
 library(knitrBootstrap)
-render("~/repos/pipelines/slack_cel_network/reports/new_smallrna/mirna.rmd")
+#render("report.rmd")
 ```
 
+```{r load}
+setwd(root_path)
+files = read.table($path_summary, sep=",",header=T)
+names_stats = files[,"size_stats"]
+samples = files[,"sample_id"]
+groups = files[,"group"]
+names(names_stats) = samples
+names(groups) = samples
+
+summarydata = data.frame(row.names=samples,samples=sample,group=groups)
+```
 
 # Exploratory analysis
 
@@ -48,13 +59,6 @@ reads with adapter, reads mapped to miRNAs, reads mapped to other small RNAs.
 After adapter removal, we can plot the size distribution of the small RNAs.
 
 ```{r adapter,fig.width=10}
-setwd(root_path)
-files = read.table({path_summary}, sep=",",header=T)
-names_stats = files[,"size_stats"]
-samples = files[,"sample_id"]
-groups = files[,"group"]
-names(names_stats) = samples
-names(groups) = samples
 tab = data.frame()
 for (sample in samples){
     d = read.table(names_stats[sample], sep=" ")
@@ -137,7 +141,7 @@ clus_ma <- clus[,2:ncol(clus)]
 
 The major contribution are repeats and rRNA, with variation in the percentage. 
 
-```{r cluster_type}
+```{r cluster_type,eval=FALSE}
 rRNA <- colSums(clus_ma[grepl("rRNA",ann) & grepl("miRNA",ann)==F,])
 miRNA <- colSums(clus_ma[grepl("miRNA",ann),])
 tRNA <- colSums(clus_ma[grepl("tRNA",ann) & grepl("rRNA",ann)==F & grepl("repeat",ann)==F & grepl("miRNA",ann)==F,])
@@ -180,7 +184,7 @@ a lot in some sample, and take that into account in the normalization.
 In the following figures the Y axis shows the % of reads with adapter. And the
 X axis shows the % of reads of different type of small RNA.
 
-```{r cor-abundance}
+```{r cor-abundance,eval=FALSE}
 reads_adapter = as.data.frame(reads_adapter)
 row.names(reads_adapter) = reads_adapter[,1]
 samples = as.character(samples)
@@ -328,7 +332,7 @@ plot_volcano(all_results)
 REMEMBER TO SORT NAMES OF SUMMARY DATA AND COUNTS
 
 ```{r de-iso}
-dss = do_de(makeCounts(obj), summarydata, condition, ref=T, iso5=T, iso3=T, add=T, sub=T)
+dss = do_de(makeCounts(obj, ref=T, iso5=T, iso3=T, add=T, sub=T), summarydata, condition)
 ```
 
 ```{r tables-iso}

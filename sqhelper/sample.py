@@ -74,4 +74,4 @@ def _miraligner(fastq_file, out_file, species, db_folder):
         with file_transaction(out_file) as tx_out_file:
             do.run(cmd.format(**locals()), "Do miRNA annotation")
             shutil.move(tx_out_file + ".mirna", out_file + ".mirna")
-    return out_file
+    return out_file + ".mirna"
