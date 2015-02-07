@@ -29,6 +29,7 @@ And finally clone this repository and type `python setup.py install`
 
 It uses ipython-cluster-helper to send jobs to nodes in the cluster
 * `--parallel` should set to `ipython`
+* `--scheduler` should be set to `sge,lsf,slurm`
 * `--num-jobs` indicates how much jobs to launch. It will run samples independently. If you have 4 samples, and set this to 4, 4 jobs will be launch to the cluster
 * `--queue` the queue to use
 * `--resources` allows to set any special parameter for the cluster, such as, email in sge system: `M=my@email.com`
