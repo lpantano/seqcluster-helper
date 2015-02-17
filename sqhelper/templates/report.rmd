@@ -27,19 +27,20 @@ library("isomiRs")
 knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=10,fig.heigh=7,
                cache=FALSE, highlight=TRUE, autodep=TRUE, warning=FALSE, error=FALSE,
                message=FALSE, prompt=TRUE, comment='', fig.cap='', bootstrap.show.code=FALSE)
-root_file = $path_abs
-root_path = $path_abs
+root_file = "$path_abs"
+root_path = "$path_abs"
+condition = "group"
 ```
 
-```{r render,eval=FALSE}
+```{r render,eval=FALSE, echo=FALSE}
 library(rmarkdown)
 library(knitrBootstrap)
-#render("report.rmd")
+# render("report.rmd")
 ```
 
 ```{r load}
 setwd(root_path)
-files = read.table($path_summary, sep=",",header=T)
+files = read.table("$path_summary", sep=",",header=T)
 names_stats = files[,"size_stats"]
 samples = files[,"sample_id"]
 groups = files[,"group"]
