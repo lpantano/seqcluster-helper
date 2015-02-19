@@ -10,7 +10,6 @@ output:
     highlight: zenburn
 ---
 
-
 ```{r setup}
 library(knitr)
 
@@ -23,13 +22,16 @@ library(gtools)
 library(gridExtra)
 library(devtools)
 library(dplyr)
-library("isomiRs")
-knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=10,fig.heigh=7,
+library(isomiRs)
+
+knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=6,fig.heigh=6,
                cache=FALSE, highlight=TRUE, autodep=TRUE, warning=FALSE, error=FALSE,
                message=FALSE, prompt=TRUE, comment='', fig.cap='', bootstrap.show.code=FALSE)
-root_file = "$path_abs"
+
 root_path = "$path_abs"
-condition = "group"
+root_file = paste0(root_path,"/report/")
+
+condition = formula(" ~ condition")
 ```
 
 ```{r render,eval=FALSE, echo=FALSE}
@@ -40,14 +42,19 @@ library(knitrBootstrap)
 
 ```{r load}
 setwd(root_path)
-files = read.table("$path_summary", sep=",",header=T)
-names_stats = files[,"size_stats"]
+files = read.table("$path_summary", sep=",",header=T,colClasses = "character")
+
 samples = files[,"sample_id"]
-groups = files[,"group"]
+
+names_stats = files[,"size_stats"]
 names(names_stats) = samples
+
+groups = files[,"group"]
 names(groups) = samples
 
-summarydata = data.frame(row.names=samples,samples=sample,group=groups)
+summarydata = data.frame(row.names=samples,samples=samples,group=groups)
+design <- data.frame(row.names=files$sample_id, condition=files$group)
+
 ```
 
 # Exploratory analysis
@@ -81,22 +88,15 @@ ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-
-
 ## miRNA
-
 
 ### total miRNA expression annotated with mirbase
 
 ```{r mirna,results='hide'}
-mi_files = paste0(  files[,"miraligner"] , ".mirna" )
-design <- as.data.frame(t(as.data.frame( sapply(as.character(files[,"group"]), strsplit, split="_",fixed=2) )))
-names(design ) <- c("sample","time")
+mi_files = files[,"miraligner"]
 row.names(design) = samples
+
 obj <- loadIso(files = mi_files, design = design ,header = T, cov = 1)
-mirna_no_errors = isomiRs::makeCounts(obj,mism = TRUE)
-keep = grepl( "0$",row.names(mirna_no_errors@counts) )
-mi_counts = mirna_no_errors@counts[keep,]
 ```
 
 
@@ -121,9 +121,10 @@ ggplot(melt(obj@counts)) +
 We can see this time we detect much more miRNAs. The saturation is near to 200.
 
 ```{r cum}
-tab <- data.frame()
+
 cs <- as.data.frame(apply(obj@counts,2,cumsum))
 cs$pos <- 1:nrow(cs)
+
 ggplot((melt(cs,id.vars = "pos")))+
     geom_point(aes(x=pos,y=value,color=variable))+
     scale_y_log10()
@@ -137,7 +138,7 @@ ggplot((melt(cs,id.vars = "pos")))+
 clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1)
 ann <- clus[,1]
 clus_ma <- clus[,2:ncol(clus)]
-
+clus_ma = clus_ma[,row.names(design)]
 ```
 
 The major contribution are repeats and rRNA, with variation in the percentage. 
@@ -174,84 +175,27 @@ ggplot(melt(dd_norm[,1:5])) +
 ```
 
 
-## correlation between type of small RNA
-
-A way to show the complexity of the samples is to show the % of the different
-type of small RNA respect to the total amount of reads with adapter.
-
-This way you can see easily if some type of small RNA is increasing or decreasing
-a lot in some sample, and take that into account in the normalization.
-
-In the following figures the Y axis shows the % of reads with adapter. And the
-X axis shows the % of reads of different type of small RNA.
-
-```{r cor-abundance,eval=FALSE}
-reads_adapter = as.data.frame(reads_adapter)
-row.names(reads_adapter) = reads_adapter[,1]
-samples = as.character(samples)
-dat = cbind(mirbase=mirna_step[samples,] , adapter=reads_adapter[samples, 3] , dd[samples, 1:6])
-ggplot(dat) +
-    geom_point(aes(x=mirbase,y=adapter,colour="mirbase"))+
-    geom_point(aes(x=total,y=adapter,colour="aligned"))+
-    geom_point(aes(x=rRNA,y=adapter,colour="rRNA"))+
-    geom_point(aes(x=rmsk,y=adapter,colour="rmsk"))+
-    facet_wrap(~samples)+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-    labs(list(y="reads w adapter",x="# reads",title="annotated reads plot"))
-    
-```
-
-
-# correlation
-
-Just to check sample correlation after normalization:
-
-```{r cor-fn}
-get_cor <- function(norm, design,size=NULL){
-    dse <- DESeqDataSetFromMatrix(countData = norm,
-                       colData = design,
-                       design = ~ sample +time+ sample*time)
-    dse <- estimateSizeFactors(dse)
-    if (! is.null(size)){
-        sizeFactors(dse) = size
-    }
-    dse <- estimateDispersions(dse)
-    rdse <- rlog(dse, blind = TRUE)
-    par(mfrow=c(2,1))
-    ggheatmap.show(ggheatmap(cor(assay(rdse))))
-    mds(assay(rdse),condition = design$sample,d="cor",xi = 1, yi = 2)
-}
-```
-
-
-```{r cor-minra-trna}
-get_cor(raw[rowMeans(raw)>5,],design,size=sizeFactors(clus_clean_dse))
-```
-
-
 # DE
 
 I did differential expression of all possible comparison using the previous normalization.
 For each DE I tried, I plot Dispersion plot that shows the relationship between
 standard deviation expression and average expression for each miRNA.
 
-```{r handle}
+
+```{r de-setup}
+library(DESeq2)
+library(DEGreport)
+library(vsn)
+```
+
+```{r deseq2-handler}
 
 filter_handle <- function(res){
     res_nona <- res[!is.na(res$padj),]
     keep <- res_nona$padj < 0.1 
     res_nona[keep,]
 }
-```
 
-```{r de-setup}
-library(DESeq2)
-library(DEGreport)
-library(vsn)
-design =  {formula}
-condition = {condition}
-```
-
-```{r deseq2-handler}
 handle_deseq2 = function(dds, summarydata, column) {
   all_combs = combn(levels(summarydata[,column]), 2, simplify=FALSE)
   all_results = list()
@@ -271,13 +215,13 @@ handle_deseq2 = function(dds, summarydata, column) {
 plot_MA = function(res){
     for(i in seq(length(res))) {
         plotMA(res[[i]])
-        gtitle(paste("MA plot for contrast", names(res)[i]))
+        title(paste("MA plot for contrast", names(res)[i]))
     }
 }
 
 plot_volcano = function(res){
     for(i in seq(length(res))) {
-        stats = res[[i]][,c(2,6)]
+        stats = as.data.frame(res[[i]][,c(2,6)])
         p = volcano_density_plot(stats, title=names(res)[i], lfc.cutoff=1)
         print(p)
     }
@@ -287,94 +231,89 @@ do_de = function(raw, summarydata, condition){
     dss = DESeqDataSetFromMatrix(countData = raw[rowMeans(raw)>3,],
                        colData = summarydata,
                        design = ~ condition)
+    dss = DESeq(dss)
     plotDispEsts(dss)
     dss
 }
 
-do_norm = function(dss, root_path){
+do_norm = function(dss, root_path, prefix){
     rlog_ma = assay(rlog(dss))
     count_ma = counts(dss, normalized=TRUE)
-    fn_log = paste0(root_file,"log_matrix.txt")
+    raw = counts(dss, normalized=FALSE)
+    fn_log = paste0(root_file, prefix, "log_matrix.txt")
     write.table(rlog_ma,fn_log,sep="\t")
-    fn_count = paste0(root_file,"count_matrix.txt")
+    fn_count = paste0(root_file, prefix, "count_matrix.txt")
     write.table(count_ma,fn_count,sep="\t")
- 
+    fn_raw = paste0(root_file, prefix, "raw_matrix.txt")
+    write.table(count_ma,fn_raw,sep="\t")
 }
 
 ```
 
-
-# mirna
+## mirna
 
 ```{r de}
-dss = do_de(obj@counts, summarydata, condition)
+dds = do_de(obj@counts, design, condition)
 ```
 
 ```{r tables}
-do_norm(dss, root_path)
+do_norm(dds, root_path, "mirna_")
 ```
 
-
-## MA-plots
+### MA-plots
   
 ```{r DESeq-output, results='asis'}
-all_results = handle_deseq2(dds, summarydata, condition)
+all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
 ```
 
-## Volcano-plots
+### Volcano-plots
 
 ```{r DESeq-volcano}
 plot_volcano(all_results)
 ```
 
-# isomir
-
-REMEMBER TO SORT NAMES OF SUMMARY DATA AND COUNTS
+## isomir
 
 ```{r de-iso}
-dss = do_de(makeCounts(obj, ref=T, iso5=T, iso3=T, add=T, sub=T), summarydata, condition)
+dds = do_de(countsIso(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)@counts, design, condition)
 ```
 
 ```{r tables-iso}
-do_norm(dss, root_path)
+do_norm(dds, root_path, "isomirs_")
 ```
 
-
-## MA-plots
+### MA-plots
   
 ```{r DESeq-output-iso, results='asis'}
-all_results = handle_deseq2(dds, summarydata, condition)
+all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
 ```
 
-## Volcano-plots
+### Volcano-plots
 
 ```{r DESeq-volcano-iso}
 plot_volcano(all_results)
 ```
 
-
-# clusters
-
+## clusters
 
 ```{r de-c}
-dss = do_de(clus_ma, summarydata, condition, ref=T, iso5=T, iso3=T, add=T, sub=T)
+dds = do_de(clus_ma, design, condition)
 ```
 
 ```{r tables-c}
-do_norm(dss, root_path)
+do_norm(dds, root_path, "clusters_")
 ```
 
-
-## MA-plots
+### MA-plots
   
 ```{r DESeq-output-c, results='asis'}
 all_results = handle_deseq2(dds, summarydata, condition)
 plot_MA(all_results)
 ```
 
-## Volcano-plots
+### Volcano-plots
 
 ```{r DESeq-volcano-c}
 plot_volcano(all_results)

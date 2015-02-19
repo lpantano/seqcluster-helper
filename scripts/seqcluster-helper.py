@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from sqhelper import sample, group, qc
 from sqhelper import cluster
+from sqhelper.report import create_rmd
 
 
 def get_sample(line, sample_map_filename):
@@ -22,6 +23,7 @@ def write_summary(data):
         in_handle.write("%s\n" % ",".join(header))
         for s in data[0]:
             in_handle.write("%s\n" % ",".join(s.values()))
+    return "summary.csv"
 
 
 if __name__ == "__main__":
@@ -64,7 +66,8 @@ if __name__ == "__main__":
 
     data = cluster.send_job(group.run_seqcluster, [data], args, "group")
 
-    write_summary(data)
-    #cluster.send_job(align.qc, data, args, "qc")
+    summary_file = write_summary(data)
+    rel_summary_file, report_file = create_rmd(summary_file)
 
-    #data = cluster.send_job(annotate.seqcluster, data, args, "annotate")
+    print "your summary files and report are: %s and %s\n" % (rel_summary_file, report_file)
+    print "you can open %s with R/Rstudio and create the report\n" % report_file
