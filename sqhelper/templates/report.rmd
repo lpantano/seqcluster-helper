@@ -31,7 +31,7 @@ knitr::opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png", fig.width=6,fig.heig
 root_path = "$path_abs"
 root_file = paste0(root_path,"/report/")
 
-condition = formula(" ~ condition")
+condition = "condition"
 ```
 
 ```{r render,eval=FALSE, echo=FALSE}
@@ -309,7 +309,7 @@ do_norm(dds, root_path, "clusters_")
 ### MA-plots
   
 ```{r DESeq-output-c, results='asis'}
-all_results = handle_deseq2(dds, summarydata, condition)
+all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
 ```
 

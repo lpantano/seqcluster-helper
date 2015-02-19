@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from sqhelper import sample, group, qc
 from sqhelper import cluster
 from sqhelper.report import create_rmd
+from sqhelper import do
 
 
 def get_sample(line, sample_map_filename):
@@ -56,6 +57,8 @@ if __name__ == "__main__":
                         help="Run in parallel on a local machine.")
     parser.add_argument("--local", action="store_true",
                         default=False, help="Run parallel locally")
+    parser.add_argument("--report", action="store_true",
+                        default=False, help="Run Rmarkdown to create html")
 
     args = parser.parse_args()
 
@@ -68,6 +71,9 @@ if __name__ == "__main__":
 
     summary_file = write_summary(data)
     rel_summary_file, report_file = create_rmd(summary_file)
+
+    if args.report:
+        do.run('R -e "library(rmarkdown);library(knitrBootstrap);render(\'%s\')"' % report_file, "Create html")
 
     print "your summary files and report are: %s and %s\n" % (rel_summary_file, report_file)
     print "you can open %s with R/Rstudio and create the report\n" % report_file

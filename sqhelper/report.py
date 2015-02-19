@@ -10,7 +10,7 @@ def create_rmd(summary_fn):
     root_path, fn = os.path.split(os.path.abspath(summary_fn))
     basedir = os.path.join(root_path, "report")
     safe_makedir(basedir)
-    out_file = os.path.join(basedir, fn.replace(".csv", "_re.csv"))
+    out_file = os.path.join(root_path, fn.replace(".csv", "_re.csv"))
     with open(summary_fn) as in_handle:
         with open(out_file, 'w') as out_handle:
             for line in in_handle:
@@ -18,6 +18,7 @@ def create_rmd(summary_fn):
                 fix_line = ",".join([os.path.relpath(c, root_path) if os.path.exists(c) else c for c in cols])
                 print >>out_handle, fix_line
     report_file = modify_report(root_path, out_file)
+
     return out_file, report_file
 
 
