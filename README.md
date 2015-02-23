@@ -35,6 +35,7 @@ It uses ipython-cluster-helper to send jobs to nodes in the cluster
 * `--resources` allows to set any special parameter for the cluster, such as, email in sge system: `M=my@email.com`
 
 Read complete usability here: https://github.com/roryk/ipython-cluster-helper
+An examples in slurm system is `--parallel ipython --scheduler slurm --num-jobs 4 --queue general`
 
 ## Output
 
