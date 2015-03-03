@@ -13,5 +13,7 @@ setup(
     packages=["sqhelper"],
     install_requires=["seqcluster",
                       "ipython-cluster-helper"],
+    package_data={'sqhelper.templates': ['*.rmd']},
+    include_package_data=True,
     scripts=['scripts/seqcluster-helper.py', 'scripts/seqcluster-installer.py']
 )
