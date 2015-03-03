@@ -19,7 +19,7 @@ def get_cluster_view(args):
                           profile="ipython",
                           extra_params={"resources": args.resources,
                                         "mem": args.memory_per_job,
-                                        "tag": "ts",
+                                        "tag": "seqcluster",
                                         "run_local": args.local})
 
 
