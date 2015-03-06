@@ -1,4 +1,5 @@
 import os
+import os.path as op
 from collections import Counter
 from bcbio.utils import splitext_plus, file_exists
 from bcbio.provenance import do
@@ -12,14 +13,14 @@ ADAPTER = "AGATCGGAAGAGCAC"
 def remove(data, args):
     adapter = args.adapter
     work_dir = data["sample_id"]
-    work_dir = os.path.abspath(utils.safe_makedir(work_dir))
+    work_dir = op.abspath(utils.safe_makedir(work_dir))
     in_file = data["fastq"]
-    out_dir = os.path.join(work_dir, "adapter")
+    out_dir = op.join(work_dir, "adapter")
     utils.safe_makedir(out_dir)
-    basename = splitext_plus(os.path.basename(in_file))[0]
-    out_file = os.path.join(out_dir, basename + "_clean.fastq")
-    out_noadapter_file = os.path.join(out_dir, basename + "_fragments.fastq")
-    out_short_file = os.path.join(out_dir, basename + "_short.fastq")
+    basename = splitext_plus(op.basename(in_file))[0]
+    out_file = op.join(out_dir, basename + "_clean.fastq")
+    out_noadapter_file = op.join(out_dir, basename + "_fragments.fastq")
+    out_short_file = op.join(out_dir, basename + "_short.fastq")
     cmd = _cmd_cutadapt()
     if not utils.file_exists(out_file):
         with file_transaction(out_file) as tx_out_file:
@@ -27,8 +28,8 @@ def remove(data, args):
     data["clean_fastq"] = out_file
     data['collapse'] = _collapse(out_file)
     data['size_stats'] = _summary(data['collapse'])
-    out_dir = utils.safe_makedir(os.path.join(work_dir, 'miraligner'))
-    out_file = os.path.join(out_dir, data["sample_id"])
+    out_dir = utils.safe_makedir(op.join(work_dir, 'miraligner'))
+    out_file = op.join(out_dir, data["sample_id"])
     data['miraligner'] = _miraligner(data["collapse"], out_file, args. species, args.db)
     return data
 
@@ -40,11 +41,11 @@ def _cmd_cutadapt():
 
 def _collapse(in_file):
     cmd = "seqcluster collapse -f {in_file} -o {out_dir}"
-    basename = splitext_plus(os.path.basename(in_file))[0]
+    basename = splitext_plus(op.basename(in_file))[0]
     out_file = splitext_plus(in_file)[0] + "_trimmed.fastq"
     if not utils.file_exists(out_file):
         with tx_tmpdir() as out_dir:
-            tx_out_file = os.path.join(out_dir, basename + "_trimmed.fastq")
+            tx_out_file = op.join(out_dir, basename + "_trimmed.fastq")
             do.run(cmd.format(**locals()), "collapse")
             shutil.move(tx_out_file, out_file)
     return out_file
@@ -53,6 +54,8 @@ def _collapse(in_file):
 def _summary(in_file):
     data = Counter()
     out_file = in_file + "_size_stats"
+    if file_exists(out_file):
+        return out_file
     with open(in_file) as in_handle:
         for line in in_handle:
             counts = int(line.strip().split("_x")[1])

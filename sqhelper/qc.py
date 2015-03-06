@@ -18,13 +18,14 @@ def quality(data, args):
 
 def _fastqc(input_file, out_dir):
     data = {'config': {'algorithm': {}}}
-    dw_file, _ = fastq.downsample(input_file, None, data, 1e7)
-    cmd = ("fastqc {dw_file} --extract -o {out_dir}")
-    out_dir = os.path.abspath(out_dir)
-    safe_makedir(out_dir)
     if not file_exists(out_dir):
+        print input_file
+        dw_file, _ = fastq.downsample(input_file, None, data, int(1e7))
+        cmd = ("fastqc {dw_file} --extract -o {out_dir}")
+        out_dir = os.path.abspath(out_dir)
+        safe_makedir(out_dir)
         do.run(cmd.format(**locals()), "Doing Fastqc %s" % input_file)
-        logger.info(cmd.format(**locals()))
+        logger.my_logger.debug(cmd.format(**locals()))
     return out_dir
 
 
