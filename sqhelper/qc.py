@@ -2,6 +2,7 @@ import os
 from bcbio.utils import file_exists, safe_makedir
 from bcbio.provenance import do
 from bcbio.distributed.transaction import tx_tmpdir, file_transaction
+from bcbio.bam import fastq
 # from sqhelper import logger
 from sqhelper.group import star_align
 
@@ -16,7 +17,9 @@ def quality(data, args):
 
 
 def _fastqc(input_file, out_dir):
-    cmd = ("fastqc {input_file} --extract -o {out_dir}")
+    data = {'config': {'algorithm': {}}}
+    dw_file, _ = fastq.downsample(input_file, None, data, 1e7)
+    cmd = ("fastqc {dw_file} --extract -o {out_dir}")
     out_dir = os.path.abspath(out_dir)
     safe_makedir(out_dir)
     if not file_exists(out_dir):
