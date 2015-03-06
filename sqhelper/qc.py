@@ -3,7 +3,7 @@ from bcbio.utils import file_exists, safe_makedir
 from bcbio.provenance import do
 from bcbio.distributed.transaction import tx_tmpdir, file_transaction
 from bcbio.bam import fastq
-# from sqhelper import logger
+from sqhelper import logger
 from sqhelper.group import star_align
 
 # import shutil
@@ -23,7 +23,8 @@ def _fastqc(input_file, out_dir):
     out_dir = os.path.abspath(out_dir)
     safe_makedir(out_dir)
     if not file_exists(out_dir):
-        do.run(cmd.format(**locals()), "Doing Fastqc")
+        do.run(cmd.format(**locals()), "Doing Fastqc %s" % input_file)
+        logger.info(cmd.format(**locals()))
     return out_dir
 
 
