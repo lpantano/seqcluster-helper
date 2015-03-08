@@ -33,7 +33,8 @@ def _prepare(data, config_file, out_dir, minl, minf):
                 fasta = sample['collapse']
                 name = sample['sample_id']
                 out_handle.write("%s\t%s\n" % (fasta, name))
-    cmd = ("seqcluster prepare -c {config_file} -u 40 -l {minl} -e {minf} -o {tx_out_dir}")
+    min_samples = int(round(len(data) / 10))
+    cmd = ("seqcluster prepare -c {config_file} -u 40 -l {minl} -e {minf} -o {tx_out_dir} --min-shared {min_samples}")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
             tx_out_dir = os.path.join(work_dir, "prepare")
