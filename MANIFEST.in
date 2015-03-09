@@ -1,2 +1,2 @@
-include sqhelper templates/*
+recursive-include sqhelper/templates *.rmd
 recursive-include sqhelper *.py
