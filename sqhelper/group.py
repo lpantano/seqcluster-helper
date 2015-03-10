@@ -3,12 +3,13 @@ import os
 from bcbio.utils import file_exists, safe_makedir
 from bcbio.provenance import do
 from bcbio.distributed.transaction import tx_tmpdir, file_transaction
-from sqhelper import logger
+from bcbio.log import logger
 import shutil
 
 MAX_EDIT_DISTANCE = 2
 MAX_BEST = 1000
 
+logger.LOG_NAME = "seqcluster-helper"
 
 def run_seqcluster(data, args):
     out_dir = "seqcluster"
@@ -54,7 +55,7 @@ def _align(data, fastq_file, args):
 def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
     opts = ""
     if annotation_file:
-        opts = "-b %s" % annotation_file
+        opts = "-g %s" % annotation_file
     cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts} -d ")
     ma_file = os.path.join(prepare_dir, "seqs.ma")
     if not file_exists(out_dir):
@@ -109,13 +110,13 @@ def qc(data, args):
         os.mkdir(out_dir)
         do.run(cmd)
     else:
-        logger.my_logger.info("%s has already been QC, skipping." % (sam_file))
+        logger.info("%s has already been QC, skipping." % (sam_file))
     return data
 
 
 def clean_align(align_file, out_file):
     if file_exists(out_file):
-        logger.my_logger.info("%s has already been cleaned, skipping." % (align_file))
+        logger.info("%s has already been cleaned, skipping." % (align_file))
         return out_file
 
     count_total_reads = 0
