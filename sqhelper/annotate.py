@@ -1,3 +1,7 @@
+"""remove file, not used functions"""
+
+
+
 from utils import file_transaction
 import os
 import pysam
