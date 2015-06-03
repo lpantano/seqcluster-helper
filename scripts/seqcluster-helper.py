@@ -1,3 +1,4 @@
+import os.path as op
 from argparse import ArgumentParser
 from sqhelper import sample, group, qc
 from sqhelper import cluster
@@ -7,9 +8,11 @@ from sqhelper import do
 
 def get_sample(line, sample_map_filename):
     keys = ["sample_id", "fastq", "group"]
-    if len(line.split(',')) != 3:
-        raise ValueError("This line hasn't 3 elements: %s" % line)
-    sample_id, r1_filename, group = line.strip().split(",")
+    if len(line.split(',')) < 3:
+        raise ValueError("This line hasn't at least 3 elements (name,path_to_fasta,group): %s" % line)
+    cols = line.strip().split(",")
+    sample_id, r1_filename, group = cols[:3]
+    assert op.exists(r1_filename), "File doesn't exists: %s" % r1_filename
     return dict(zip(keys, [sample_id, r1_filename, group]))
 
 
