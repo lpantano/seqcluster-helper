@@ -7,7 +7,7 @@ from bcbio.distributed.transaction import file_transaction, tx_tmpdir
 from bcbio import utils
 import shutil
 
-ADAPTER = "AGATCGGAAGAGCAC"
+# ADAPTER = "AGATCGGAAGAGCAC"
 
 
 def remove(data, args):
