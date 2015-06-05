@@ -56,7 +56,7 @@ def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
     opts = ""
     if annotation_file:
         opts = "-g %s" % annotation_file
-    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts} -d ")
+    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts}")
     ma_file = os.path.join(prepare_dir, "seqs.ma")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
