@@ -12,6 +12,8 @@ Install first:
 
 And finally clone this repository and type `python setup.py install`
 
+if you get problem with pythonpy: `pip install pythonpy`
+
 ### check installation
 
 `seqcluster-installer.py --check` will tell you if all dependencies are installed and ready to use the framework

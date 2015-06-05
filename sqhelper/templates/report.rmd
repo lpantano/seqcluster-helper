@@ -83,7 +83,7 @@ ggplot(reads_adapter, aes(x=sample,y=total,fill=group)) +
 
 ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
     geom_bar(stat="identity", position = "dodge") +
-    facet_wrap(~group, nrow=2)+
+    facet_wrap(~group, ncol=4)+
     ggtitle("size distribution") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -96,21 +96,21 @@ ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
 mi_files = files[,"miraligner"]
 row.names(design) = samples
 
-obj <- loadIso(files = mi_files, design = design ,header = T, cov = 1)
+obj <- IsomirDataSeqFromFiles(files = mi_files, design = design ,header = T, cov = 1)
 ```
 
 
 ```{r mirna-mirbase}
-ggplot( data.frame(sample=colnames(obj@counts), total=colSums(obj@counts))) +
+ggplot( data.frame(sample=colnames(counts(obj)), total=colSums(counts(obj)))) +
     geom_bar(aes(x=sample,y=total), stat='identity')+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-mirna_step <- as.data.frame(colSums(obj@counts))
+mirna_step <- as.data.frame(colSums(counts(obj)))
 ```
 
 ### Distribution of mirna expression
 
 ```{r depth}
-ggplot(melt(obj@counts)) +
+ggplot(melt(counts(obj))) +
     geom_boxplot(aes(x=X2,y=value))+
     scale_y_log10()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -122,7 +122,7 @@ We can see this time we detect much more miRNAs. The saturation is near to 200.
 
 ```{r cum}
 
-cs <- as.data.frame(apply(obj@counts,2,cumsum))
+cs <- as.data.frame(apply(counts(obj),2,cumsum))
 cs$pos <- 1:nrow(cs)
 
 ggplot((melt(cs,id.vars = "pos")))+
