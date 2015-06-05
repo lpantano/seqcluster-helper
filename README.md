@@ -14,6 +14,10 @@ And finally clone this repository and type `python setup.py install`
 
 if you get problem with pythonpy: `pip install pythonpy`
 
+Install isomiRs package for R using devtools: 
+
+`devtools::install_github('lpantano/isomiRs', ref='develop')`
+
 ### check installation
 
 `seqcluster-installer.py --check` will tell you if all dependencies are installed and ready to use the framework
