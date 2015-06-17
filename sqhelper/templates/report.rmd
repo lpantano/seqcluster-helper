@@ -83,7 +83,7 @@ ggplot(reads_adapter, aes(x=sample,y=total,fill=group)) +
 
 ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
     geom_bar(stat="identity", position = "dodge") +
-    facet_wrap(~group, ncol=4)+
+    facet_wrap(~group, ncol=2)+
     ggtitle("size distribution") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -171,7 +171,7 @@ ggplot(reads_stats, aes(x=V2, y=V1, fill=V3)) +
 
 
 ```{r cluster}
-clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1)
+clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1, check.names = FALSE)
 ann <- clus[,2]
 toomany <- clus[,1]
 clus_ma <- clus[,3:ncol(clus)]
