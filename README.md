@@ -24,7 +24,7 @@ Install isomiRs package for R using devtools:
 
 ## Easy start
 
-`seqcluster-helper.py --sample-map config.csv --aligner-index /path/2/star_index --gtf-file /path/2/gtf_annotation --species hsa `
+`seqcluster-helper.py --sample-map config.csv --aligner-index /path/2/star_index --gtf-file /path/2/gtf_annotation --species hsa --reference /path/2/genome/fasta`
 
 * `sample-map` file should be a csv file with: `name,/path/2/fastq,group` for each sample
 * `gtf-file` is used for annotation. The 3 column is the group of sRNA and the `gene_name` attribute the annotation
