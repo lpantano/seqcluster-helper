@@ -22,7 +22,7 @@ def run_seqcluster(data, args):
     bam_file = _align(data, fastq_file, args)
     #quality = _coverage(bam_file, prepare_dir)
     cluster_dir = os.path.join(out_dir, "cluster")
-    cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir, args.gtf_file)
+    cluster_dir = _cluster(bam_file, prepare_dir, cluster_dir, args.reference, args.gtf_file)
     data = _update(data, prepare_dir, bam_file, cluster_dir)
     return data
 
@@ -34,7 +34,7 @@ def _prepare(data, config_file, out_dir, minl, minf):
                 fasta = sample['collapse']
                 name = sample['sample_id']
                 out_handle.write("%s\t%s\n" % (fasta, name))
-    min_samples = int(round(len(data) / 10))
+    min_samples = min(0, int(round(len(data) / 10)))
     cmd = ("seqcluster prepare -c {config_file} -u 40 -l {minl} -e {minf} -o {tx_out_dir} --min-shared {min_samples}")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:
@@ -52,11 +52,11 @@ def _align(data, fastq_file, args):
     return bam_file
 
 
-def _cluster(bam_file, prepare_dir, out_dir, annotation_file="None"):
+def _cluster(bam_file, prepare_dir, out_dir, reference, annotation_file="None"):
     opts = ""
     if annotation_file:
         opts = "-g %s" % annotation_file
-    cmd = ("seqcluster cluster -m {ma_file} -a {bam_file} -o {tx_out_dir} {opts}")
+    cmd = ("seqcluster cluster -m {ma_file} -ref {reference} -a {bam_file} -o {tx_out_dir} {opts}")
     ma_file = os.path.join(prepare_dir, "seqs.ma")
     if not file_exists(out_dir):
         with tx_tmpdir() as work_dir:

@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
     parser.add_argument("--adapter", required=True, help="Adapter.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
+    parser.add_argument("--reference", help="Path to genome fasta.")
+
     parser.add_argument("--gtf-file", required=False, help="GTF file")
     parser.add_argument("--config", required=False, help="yaml file with custom resources.")
     parser.add_argument("--num-jobs", type=int,
