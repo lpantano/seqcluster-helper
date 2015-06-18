@@ -7,7 +7,7 @@ from sqhelper import do
 
 
 def get_sample(line, sample_map_filename):
-    keys = ["sample_id", "fastq", "group"]
+    keys = ["fastq", "sample_id", "group"]
     if len(line.split(',')) < 3:
         raise ValueError("This line hasn't at least 3 elements (name,path_to_fasta,group): %s" % line)
     cols = line.strip().split(",")
@@ -18,6 +18,7 @@ def get_sample(line, sample_map_filename):
 
 def get_samples_to_process(sample_file):
     with open(sample_file) as in_handle:
+        in_handle.next()
         return [get_sample(x, sample_file) for x in in_handle]
 
 
