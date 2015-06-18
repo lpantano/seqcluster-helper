@@ -11,7 +11,7 @@ def get_sample(line, sample_map_filename):
     if len(line.split(',')) < 3:
         raise ValueError("This line hasn't at least 3 elements (name,path_to_fasta,group): %s" % line)
     cols = line.strip().split(",")
-    sample_id, r1_filename, group = cols[:3]
+    r1_filename, sample_id, group = cols[:3]
     assert op.exists(r1_filename), "File doesn't exists: %s" % r1_filename
     return dict(zip(keys, [sample_id, r1_filename, group]))
 
