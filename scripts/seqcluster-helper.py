@@ -13,7 +13,7 @@ def get_sample(line, sample_map_filename):
     cols = line.strip().split(",")
     r1_filename, sample_id, group = cols[:3]
     assert op.exists(r1_filename), "File doesn't exists: %s" % r1_filename
-    return dict(zip(keys, [sample_id, r1_filename, group]))
+    return dict(zip(keys, [r1_filename, sample_id, group]))
 
 
 def get_samples_to_process(sample_file):
