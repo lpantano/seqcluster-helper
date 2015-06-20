@@ -56,10 +56,10 @@ def _cluster(bam_file, prepare_dir, out_dir, reference, annotation_file="None"):
     opts = ""
     if annotation_file:
         opts = "-g %s" % annotation_file
-    cmd = ("seqcluster cluster -m {ma_file} -ref {reference} -a {bam_file} -o {tx_out_dir} {opts}")
+    cmd = ("seqcluster cluster -m {ma_file} -ref {reference} -a {bam_file} -o {out_dir} {opts}")
     ma_file = os.path.join(prepare_dir, "seqs.ma")
-    if not file_exists(out_dir):
-        out_dir = os.path.join(out_dir, "cluster")
+    if not file_exists(os.path.join(out_dir, "counts.tsv")):
+        # out_dir = os.path.join(out_dir, "cluster")
         do.run(cmd.format(**locals()), "seqcluster cluster")
     return out_dir
 
