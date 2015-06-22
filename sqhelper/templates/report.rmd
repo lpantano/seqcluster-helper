@@ -299,7 +299,7 @@ do_norm = function(dss, root_path, prefix){
 ## mirna
 
 ```{r de}
-dds = do_de(obj@counts, design, condition)
+dds = do_de(counts(obj), design, condition)
 ```
 
 ```{r tables}
@@ -322,7 +322,7 @@ plot_volcano(all_results)
 ## isomir
 
 ```{r de-iso}
-dds = do_de(countsIso(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)@counts, design, condition)
+dds = do_de(counts(isoCounts(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)), design, condition)
 ```
 
 ```{r tables-iso}
