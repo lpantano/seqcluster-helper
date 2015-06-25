@@ -83,7 +83,7 @@ ggplot(reads_adapter, aes(x=sample,y=total,fill=group)) +
 
 ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
     geom_bar(stat="identity", position = "dodge") +
-    facet_wrap(~group, nrow=2)+
+    facet_wrap(~group, ncol=2)+
     ggtitle("size distribution") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -96,21 +96,21 @@ ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
 mi_files = files[,"miraligner"]
 row.names(design) = samples
 
-obj <- loadIso(files = mi_files, design = design ,header = T, cov = 1)
+obj <- IsomirDataSeqFromFiles(files = mi_files, design = design ,header = T, cov = 1)
 ```
 
 
 ```{r mirna-mirbase}
-ggplot( data.frame(sample=colnames(obj@counts), total=colSums(obj@counts))) +
+ggplot( data.frame(sample=colnames(counts(obj)), total=colSums(counts(obj)))) +
     geom_bar(aes(x=sample,y=total), stat='identity')+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-mirna_step <- as.data.frame(colSums(obj@counts))
+mirna_step <- as.data.frame(colSums(counts(obj)))
 ```
 
 ### Distribution of mirna expression
 
 ```{r depth}
-ggplot(melt(obj@counts)) +
+ggplot(melt(counts(obj))) +
     geom_boxplot(aes(x=X2,y=value))+
     scale_y_log10()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -122,7 +122,7 @@ We can see this time we detect much more miRNAs. The saturation is near to 200.
 
 ```{r cum}
 
-cs <- as.data.frame(apply(obj@counts,2,cumsum))
+cs <- as.data.frame(apply(counts(obj),2,cumsum))
 cs$pos <- 1:nrow(cs)
 
 ggplot((melt(cs,id.vars = "pos")))+
@@ -130,18 +130,68 @@ ggplot((melt(cs,id.vars = "pos")))+
     scale_y_log10()
 ```
 
-## Others
+## Others small RNA
+
+The data was analyzed with [seqcluster](http://seqcluster.readthedocs.org/)
+
+This tools used all reads, uniquely mapped and multi-mapped reads. The first
+step is to cluster sequences in all locations they overlap. The second step is to 
+create meta-clusters: is the unit that merge all clusters that share the 
+same sequences. This way the output are meta-clusters, common sequences that could
+come from different region of the genome.
+
+
+### genome covered
+
+```{r genome-covered, results='asis'}
+cov_stats <- read.table(file.path(root_path, "align", "seqs_clean_rmlw.bam_cov.tsv"),sep="\t",check.names = F)
+
+kable(cov_stats[cov_stats$V1=="genome",] %>% select(coverage=V2,ratio_genome=V5))
+
+```
+
+The normal value for data with strong small RNA signal is: 0.0002
 
 ### classification
 
+Number of reads in the data after each step:
+
+* raw: initial reads
+* cluster: after cluster detection
+* multimap: after meta-cluster detection
+
+```{r reads-track}
+reads_stats <- read.table(file.path(root_path, "seqcluster", "cluster", "read_stats.tsv"),sep="\t",check.names = F)
+ggplot(reads_stats, aes(x=V2, y=V1, fill=V3)) + 
+    geom_bar(stat = 'identity', position = 'dodge') +
+    labs(list(x="samples", y="reads")) +
+    scale_fill_brewer("steps", palette = 'Set1')+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
 ```{r cluster}
-clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1)
-ann <- clus[,1]
-clus_ma <- clus[,2:ncol(clus)]
+clus <- read.table(files[1,"clusters"],header=T,sep="\t",row.names=1, check.names = FALSE)
+ann <- clus[,2]
+toomany <- clus[,1]
+clus_ma <- clus[,3:ncol(clus)]
 clus_ma = clus_ma[,row.names(design)]
 ```
 
-The major contribution are repeats and rRNA, with variation in the percentage. 
+
+Check complex meta-clusters: This kind of events happen when there are small RNA over the whole genome, and all
+repetitive small rnas map to thousands of places and sharing many sequences in many positions.
+If any meta-cluster is > 40% of the total data, maybe it is worth to add some filters
+like: minimum number of counts `-e` or `--min--shared` in `seqcluster prepare`
+
+
+```{r complex-meta-clusters}
+clus_ma_norm = sweep(clus_ma, 2, colSums(clus_ma), "/")
+head(clus_ma_norm[toomany>0,])
+```
+
+
+Contribution by class:
 
 ```{r cluster_type,eval=FALSE}
 rRNA <- colSums(clus_ma[grepl("rRNA",ann) & grepl("miRNA",ann)==F,])
@@ -176,10 +226,6 @@ ggplot(melt(dd_norm[,1:5])) +
 
 
 # DE
-
-I did differential expression of all possible comparison using the previous normalization.
-For each DE I tried, I plot Dispersion plot that shows the relationship between
-standard deviation expression and average expression for each miRNA.
 
 
 ```{r de-setup}
@@ -253,7 +299,7 @@ do_norm = function(dss, root_path, prefix){
 ## mirna
 
 ```{r de}
-dds = do_de(obj@counts, design, condition)
+dds = do_de(counts(obj), design, condition)
 ```
 
 ```{r tables}
@@ -276,7 +322,7 @@ plot_volcano(all_results)
 ## isomir
 
 ```{r de-iso}
-dds = do_de(countsIso(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)@counts, design, condition)
+dds = do_de(counts(isoCounts(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)), design, condition)
 ```
 
 ```{r tables-iso}

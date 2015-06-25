@@ -1,3 +1,4 @@
+import os.path as op
 from argparse import ArgumentParser
 from sqhelper import sample, group, qc
 from sqhelper import cluster
@@ -7,15 +8,18 @@ from sqhelper import do
 
 
 def get_sample(line, sample_map_filename):
-    keys = ["sample_id", "fastq", "group"]
-    if len(line.split(',')) != 3:
-        raise ValueError("This line hasn't 3 elements: %s" % line)
-    sample_id, r1_filename, group = line.strip().split(",")
-    return dict(zip(keys, [sample_id, r1_filename, group]))
+    keys = ["fastq", "sample_id", "group"]
+    if len(line.split(',')) < 3:
+        raise ValueError("This line hasn't at least 3 elements (name,path_to_fasta,group): %s" % line)
+    cols = line.strip().split(",")
+    r1_filename, sample_id, group = cols[:3]
+    assert op.exists(r1_filename), "File doesn't exists: %s" % r1_filename
+    return dict(zip(keys, [r1_filename, sample_id, group]))
 
 
 def get_samples_to_process(sample_file):
     with open(sample_file) as in_handle:
+        in_handle.next()
         return [get_sample(x, sample_file) for x in in_handle]
 
 
@@ -42,6 +46,8 @@ if __name__ == "__main__":
     parser.add_argument("--sample-map", required=True, help="Sample map file.")
     parser.add_argument("--adapter", required=True, help="Adapter.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
+    parser.add_argument("--reference", help="Path to genome fasta.")
+
     parser.add_argument("--gtf-file", required=False, help="GTF file")
     parser.add_argument("--protac", action='store_true', required=False, help="Run protac pipeline.")
     parser.add_argument("--config", required=False, help="yaml file with custom resources.")
