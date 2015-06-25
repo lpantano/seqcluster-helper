@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from sqhelper import sample, group, qc
 from sqhelper import cluster
+from sqhelper import pirna
 from sqhelper.report import create_rmd
 from sqhelper import do
 
@@ -42,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument("--adapter", required=True, help="Adapter.")
     parser.add_argument("--aligner-index", help="Path to aligner index.")
     parser.add_argument("--gtf-file", required=False, help="GTF file")
+    parser.add_argument("--protac", action='store_true', required=False, help="Run protac pipeline.")
     parser.add_argument("--config", required=False, help="yaml file with custom resources.")
     parser.add_argument("--num-jobs", type=int,
                         default=1, help="Number of concurrent jobs to process.")
@@ -77,3 +79,6 @@ if __name__ == "__main__":
 
     print "your summary files and report are: %s and %s\n" % (rel_summary_file, report_file)
     print "you can open %s with R/Rstudio and create the report\n" % report_file
+
+    if args.protac:
+        cluster.send_job(pirna.protac, [data], args, "pirna")
