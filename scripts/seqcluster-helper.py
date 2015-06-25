@@ -87,4 +87,4 @@ if __name__ == "__main__":
     print "you can open %s with R/Rstudio and create the report\n" % report_file
 
     if args.protac:
-        cluster.send_job(pirna.protac, [data], args, "pirna")
+        cluster.send_job(pirna.protac, data, args, "pirna")
