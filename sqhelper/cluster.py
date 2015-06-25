@@ -6,6 +6,7 @@ from cluster_helper import cluster as ipc
 config_default = {"sample": [4, 2, None],
                   "group": [45, 8, 1],
                   "qc": [8, 1, None],
+                  "pirna": [16, 1, None],
                   "report": [8, 1, 1]}
 
 
