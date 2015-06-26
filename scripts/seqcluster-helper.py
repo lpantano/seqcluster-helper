@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--reference", help="Path to genome fasta.")
 
     parser.add_argument("--gtf-file", required=False, help="GTF file")
-    parser.add_argument("--protac", action='store_true', required=False, help="Run protac pipeline.")
+    parser.add_argument("--protac", default=None, required=False, help="Run protac pipeline. None, Only, All", choices=['Only', 'All'])
     parser.add_argument("--config", required=False, help="yaml file with custom resources.")
     parser.add_argument("--num-jobs", type=int,
                         default=1, help="Number of concurrent jobs to process.")
@@ -75,16 +75,18 @@ if __name__ == "__main__":
     data = cluster.send_job(sample.remove, data, args, "sample")
     data = cluster.send_job(qc.quality, data, args, "qc")
 
-    data = cluster.send_job(group.run_seqcluster, [data], args, "group")
+    if args.protac != "Only":
+        data = cluster.send_job(sample.mirbase, data, args, "sample")
+        data = cluster.send_job(group.run_seqcluster, [data], args, "group")
 
-    summary_file = write_summary(data)
-    rel_summary_file, report_file = create_rmd(summary_file)
+        summary_file = write_summary(data)
+        rel_summary_file, report_file = create_rmd(summary_file)
 
-    if args.report:
-        do.run('R -e "library(rmarkdown);library(knitrBootstrap);render(\'%s\')"' % report_file, "Create html")
+        if args.report:
+            do.run('R -e "library(rmarkdown);library(knitrBootstrap);render(\'%s\')"' % report_file, "Create html")
 
-    print "your summary files and report are: %s and %s\n" % (rel_summary_file, report_file)
-    print "you can open %s with R/Rstudio and create the report\n" % report_file
+        print "your summary files and report are: %s and %s\n" % (rel_summary_file, report_file)
+        print "you can open %s with R/Rstudio and create the report\n" % report_file
 
     if args.protac:
         cluster.send_job(pirna.protac, data, args, "pirna")

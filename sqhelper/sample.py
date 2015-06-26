@@ -28,11 +28,15 @@ def remove(data, args):
     data["clean_fastq"] = out_file
     data['collapse'] = _collapse(out_file)
     data['size_stats'] = _summary(data['collapse'])
+    return data
+
+
+def mirbase(data, args):
+    work_dir = data["sample_id"]
     out_dir = utils.safe_makedir(op.join(work_dir, 'miraligner'))
     out_file = op.join(out_dir, data["sample_id"])
     data['miraligner'] = _miraligner(data["collapse"], out_file, args. species, args.db)
     return data
-
 
 def _cmd_cutadapt():
     cmd = "cutadapt --adapter={adapter} --minimum-length=8 --untrimmed-output={out_noadapter_file} -o {tx_out_file} -m 17 --overlap=8 {in_file} --too-short-output {out_short_file}"
