@@ -42,7 +42,6 @@ def _cmd_cutadapt():
     cmd = "cutadapt --adapter={adapter} --minimum-length=8 --untrimmed-output={out_noadapter_file} -o {tx_out_file} -m 17 --overlap=8 {in_file} --too-short-output {out_short_file}"
     return cmd
 
-
 def _collapse(in_file):
     cmd = "seqcluster collapse -f {in_file} -o {out_dir}"
     basename = splitext_plus(op.basename(in_file))[0]
@@ -53,7 +52,6 @@ def _collapse(in_file):
             do.run(cmd.format(**locals()), "collapse")
             shutil.move(tx_out_file, out_file)
     return out_file
-
 
 def _summary(in_file):
     data = Counter()
@@ -73,7 +71,6 @@ def _summary(in_file):
             for l, c in data.iteritems():
                 out_handle.write("%s %s\n" % (l, c))
     return out_file
-
 
 def _miraligner(fastq_file, out_file, species, db_folder):
     cmd = ("miraligner -Xms750m -Xmx8g -freq -sub 1 -trim 3 -add 3 -s {species} -i {fastq_file} -db {db_folder}  -o {tx_out_file}")
