@@ -33,7 +33,6 @@ root_file = paste0(root_path,"/report/")
 
 condition = "condition"
 ```
-
 ```{r render,eval=FALSE, echo=FALSE}
 library(rmarkdown)
 library(knitrBootstrap)
@@ -42,7 +41,7 @@ library(knitrBootstrap)
 
 ```{r load}
 setwd(root_path)
-files = read.table("$path_summary", sep=",",header=T,colClasses = "character")
+files = read.table(file.path(root_path, "summary_re.csv"), sep=",",header=T,colClasses = "character")
 
 samples = files[,"sample_id"]
 
@@ -69,7 +68,7 @@ After adapter removal, we can plot the size distribution of the small RNAs.
 ```{r adapter,fig.width=10}
 tab = data.frame()
 for (sample in samples){
-    d = read.table(names_stats[sample], sep=" ")
+    d = read.table(file.path(root_path,names_stats[sample]), sep=" ")
     tab = rbind(tab, d %>% mutate(sample=sample, group=groups[sample]))
 }
 
@@ -93,7 +92,7 @@ ggplot(tab, aes(x=V1,y=V2,fill=sample)) +
 ### total miRNA expression annotated with mirbase
 
 ```{r mirna,results='hide'}
-mi_files = files[,"miraligner"]
+mi_files = file.path(root_path,files[,"miraligner"])
 row.names(design) = samples
 
 obj <- IsomirDataSeqFromFiles(files = mi_files, design = design ,header = T, cov = 1)
@@ -122,13 +121,24 @@ We can see this time we detect much more miRNAs. The saturation is near to 200.
 
 ```{r cum}
 
-cs <- as.data.frame(apply(counts(obj),2,cumsum))
+cs <- as.data.frame(apply(counts(obj),2,function(x){cumsum(sort(x, decreasing = T))}))
 cs$pos <- 1:nrow(cs)
 
 ggplot((melt(cs,id.vars = "pos")))+
-    geom_point(aes(x=pos,y=value,color=variable))+
+    geom_line(aes(x=pos,y=value,color=variable))+
     scale_y_log10()
 ```
+
+### complexity
+
+Number of miRNAs with > 3 counts.
+
+```{r complexity}
+
+kable(as.data.frame(colSums(counts(obj)>3)))
+
+```
+
 
 ## Others small RNA
 
@@ -186,25 +196,35 @@ like: minimum number of counts `-e` or `--min--shared` in `seqcluster prepare`
 
 
 ```{r complex-meta-clusters}
-clus_ma_norm = sweep(clus_ma, 2, colSums(clus_ma), "/")
+library(edgeR)
+clus_ma_norm = cpm(DGEList(clus_ma),normalized.lib.sizes = TRUE)
 head(clus_ma_norm[toomany>0,])
 ```
 
+### complexity
 
-Contribution by class:
+Number of miRNAs with > 3 counts.
 
-```{r cluster_type,eval=FALSE}
+```{r complexity}
+
+kable(as.data.frame(colSums(clus_ma>3)))
+
+```
+
+### Contribution by class
+
+```{r cluster_type}
 rRNA <- colSums(clus_ma[grepl("rRNA",ann) & grepl("miRNA",ann)==F,])
 miRNA <- colSums(clus_ma[grepl("miRNA",ann),])
-tRNA <- colSums(clus_ma[grepl("tRNA",ann) & grepl("rRNA",ann)==F & grepl("repeat",ann)==F & grepl("miRNA",ann)==F,])
-rmsk <- colSums(clus_ma[grepl("repeat",ann) & grepl("rRNA",ann)==F & grepl("miRNA",ann)==F,])
+tRNA <- colSums(clus_ma[grepl("tRNA",ann) & grepl("rRNA",ann)==F & grepl("ncRNA",ann)==F & grepl("miRNA",ann)==F,])
+rmsk <- colSums(clus_ma[grepl("ncRNA",ann) & grepl("rRNA",ann)==F & grepl("miRNA",ann)==F,])
 total <- colSums(clus_ma)
 
 dd <- data.frame(samples=names(rRNA),
                  rRNA=rRNA,
                  miRNA=miRNA,
                  tRNA=tRNA,
-                 rmsk=rmsk,
+                 ncRNA=rmsk,
                 total=total)
 ggplot(melt(dd)) +
     geom_bar(aes(x=samples,y=value,fill=variable),
@@ -222,6 +242,10 @@ ggplot(melt(dd_norm[,1:5])) +
     scale_fill_brewer(palette = "Set1")+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     labs(list(title="relative proportion of small RNAs",y="% reads"))
+```
+
+```{r clus-size-by-class}
+size_clus <- read.table(file.path(root_path, "seqcluster", "cluster", "size_counts.tsv"),sep="\t",check.names = F)
 ```
 
 
@@ -260,7 +284,7 @@ handle_deseq2 = function(dds, summarydata, column) {
 
 plot_MA = function(res){
     for(i in seq(length(res))) {
-        plotMA(res[[i]])
+        DESeq2::plotMA(res[[i]])
         title(paste("MA plot for contrast", names(res)[i]))
     }
 }
@@ -273,8 +297,8 @@ plot_volcano = function(res){
     }
 }
 
-do_de = function(raw, summarydata, condition){
-    dss = DESeqDataSetFromMatrix(countData = raw[rowMeans(raw)>3,],
+do_de = function(raw, summarydata, condition, minc=3){
+    dss = DESeqDataSetFromMatrix(countData = raw[rowMeans(raw)>minc,],
                        colData = summarydata,
                        design = ~ condition)
     dss = DESeq(dss)
@@ -311,18 +335,21 @@ do_norm(dds, root_path, "mirna_")
 ```{r DESeq-output, results='asis'}
 all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
+
+kable(head(all_results$ko_vs_wt))
+
 ```
 
-### Volcano-plots
+```{r DESeq-confirmation, eval=FALSE}
+DESeq2::plotCounts(dds, put_gene_name_here)
 
-```{r DESeq-volcano}
-plot_volcano(all_results)
 ```
+
 
 ## isomir
 
 ```{r de-iso}
-dds = do_de(counts(isoCounts(obj, ref=T, iso5=T, iso3=T, add=T, mism =T)), design, condition)
+dds = do_de(counts(isoCounts(obj, ref=T, iso5=T, iso3=T, add=T, subs =T)), design, condition, 10)
 ```
 
 ```{r tables-iso}
@@ -334,12 +361,14 @@ do_norm(dds, root_path, "isomirs_")
 ```{r DESeq-output-iso, results='asis'}
 all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
+
+kable(head(all_results$ko_vs_wt))
+
 ```
 
-### Volcano-plots
+```{r DESeq-confirmation-iso, eval=FALSE}
+DESeq2::plotCounts(dds, put_gene_name_here)
 
-```{r DESeq-volcano-iso}
-plot_volcano(all_results)
 ```
 
 ## clusters
@@ -357,13 +386,12 @@ do_norm(dds, root_path, "clusters_")
 ```{r DESeq-output-c, results='asis'}
 all_results = handle_deseq2(dds, design, condition)
 plot_MA(all_results)
+
+clust_des = head(all_results$ko_vs_wt)
+ann_des = clus[rownames(clust_des),]
+
+kable(cbind(clust_des, ann_des))
+
 ```
-
-### Volcano-plots
-
-```{r DESeq-volcano-c}
-plot_volcano(all_results)
-```
-
 
 
